@@ -1,5 +1,7 @@
 # Apresentação: outbox com relay, JDBC Source e Debezium
 
+**Ver online:** https://machado-vitor.github.io/outbox-pattern-talk/outbox-pattern.html
+
 `outbox-pattern.html` é a apresentação: 10 minutos, em inglês, para devs. É um único arquivo que abre
 offline em qualquer navegador (duplo clique), sem servidor.
 

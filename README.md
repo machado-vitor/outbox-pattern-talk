@@ -1,28 +1,27 @@
-# Apresentação: outbox com relay, JDBC Source e Debezium
+# Talk: the outbox pattern with a relay, JDBC Source and Debezium
 
-**Ver online:** https://machado-vitor.github.io/outbox-pattern-talk/outbox-pattern.html
+**View online:** https://machado-vitor.github.io/outbox-pattern-talk/outbox-pattern.html
 
-`outbox-pattern.html` é a apresentação: 10 minutos, em inglês, para devs. É um único arquivo que abre
-offline em qualquer navegador (duplo clique), sem servidor.
+`outbox-pattern.html` is the deck: 10 minutes, for developers. It is a single file that opens offline in
+any browser (double-click), no server needed.
 
-- 9 slides de fala (cerca de 8:45 a 140 palavras por minuto), com o roteiro e o tempo de cada slide nas notas.
-- 8 slides de backup depois do "Thank you" para perguntas: DDL da outbox, loop do relay, configurações do
-  producer, como escalar o relay, dedupe no consumidor, config do Debezium, monitoramento do slot e do
-  binlog, expurgo. Os que não vêm das POCs dizem "illustrative, not from the POCs".
-- Código com cores do VS Code (tema Light+); amarelo marca o que comentar, vermelho marca a armadilha.
+- 9 talk slides (about 8:45 at 140 words per minute), with the script and timing for each slide in the notes.
+- 8 backup slides after "Thank you" for Q&A: outbox DDL, relay loop, producer settings, scaling the relay,
+  consumer dedupe, Debezium config, slot and binlog monitoring, purging. Those not taken from the POCs say
+  "illustrative, not from the POCs".
+- Code uses VS Code colors (Light+ theme); yellow marks what to talk about, red marks the trap.
 
-Teclas: → ou espaço avança, ← volta, F tela cheia, N mostra as notas, P abre o modo apresentador numa
-segunda janela sincronizada, com cronômetro e o roteiro.
+Keys: → or space next, ← back, F fullscreen, N toggles notes, P opens presenter mode in a second synced
+window, with a timer and the script.
 
-## Editar
+## Editing
 
-A fonte é `html/outbox-pattern.src.html`. Num bloco `<pre data-lang="java|sql|json">`, envolva o trecho a
-comentar em `⟦…⟧` (amarelo) ou `⟦!…⟧` (vermelho). Depois:
+The source is `html/outbox-pattern.src.html`. In a `<pre data-lang="java|sql|json">` block, wrap the part
+to highlight in `⟦…⟧` (yellow) or `⟦!…⟧` (red). Then:
 
 ```sh
-npm install      # na 1ª vez: npx playwright install chromium
-npm run build    # colore o código com Shiki, renderiza os diagramas mermaid e regrava outbox-pattern.html
+npm install      # first time only: npx playwright install chromium
+npm run build    # highlights code with Shiki, renders the mermaid diagrams, rewrites outbox-pattern.html
 ```
 
-Todo trecho citado com `arquivo:linhas` foi copiado das POCs sem alteração. A análise por trás de cada slide
-está em `../reports/Comparativo outbox relay JDBC Debezium.md`, e as notas com fontes em `../research_notes/`.
+Every snippet cited as `file:lines` is copied verbatim from the POCs.

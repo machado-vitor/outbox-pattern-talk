@@ -1,0 +1,13 @@
+{
+  "name": "outbox-compared-slides",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node html/build.mjs"
+  },
+  "devDependencies": {
+    "mermaid": "^12.2.0",
+    "playwright-chromium": "^1.64.0",
+    "shiki": "^4.5.0"
+  }
+}

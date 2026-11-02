@@ -153,7 +153,7 @@ Budget 1:15, leave by 3:10 · 5 clicks
 Budget 1:05, leave by 4:15 · 5 clicks
 
 **On open** · the loop code · **highlight** the SELECT lines
-> **Let's start with the relay.** About eighty lines, and this is the loop. Select rows where published_at is null. **→ click**
+> **Let's start with the relay.** This is the loop. Select rows where published_at is null. **→ click**
 
 **Click 1** · the send line · **highlight** kafka.send … .get()
 > **Send each one**, wait for the ack. If a send fails, nothing gets marked. **→ click**

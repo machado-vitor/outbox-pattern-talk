@@ -281,10 +281,10 @@ db.prepareStatement("UPDATE outbox ⟦SET published_at = now()⟧ WHERE id = ANY
   <div class="cols3 ops mt3">
     <div data-step="3" class="card"><div class="t relay">Why A came out</div>The question is "is it published?", not "is the id above where I stopped?". A late commit is one more unpublished row.</div>
     <div data-step="4" class="card"><div class="t">The cost: a duplicate</div>Kafka has the event but the UPDATE never ran: the next sweep sends it again. RelayTest.java:85-101 pauses Kafka mid-send; the topic holds the same <code>event_id</code> twice.<div class="fig"><span class="chip">e1</span><span class="chip">e2</span><span class="chip dup">e2</span><div class="op">the consumer drops the second e2</div></div></div>
-    <div data-step="5" class="card"><div class="t">What you get</div><div class="li">· ~80 lines, one connection, no DB setup</div><div class="li">· every failure shows up in a debugger</div><div class="li">· latency = the poll interval (1 s here)</div><div class="li">· the table grows: purge it</div><div class="li">· one instance keeps per-aggregate order</div></div>
+    <div data-step="5" class="card"><div class="t">What you get</div><div class="li">· one class, one connection, no DB setup</div><div class="li">· every failure shows up in a debugger</div><div class="li">· latency = the poll interval (1 s here)</div><div class="li">· the table grows: purge it</div><div class="li">· one instance keeps per-aggregate order</div></div>
   </div>
   <aside class="notes" data-time="1:05 · running 4:15">
-    <p data-on="the loop code" data-focus="line:2-3" data-point="the SELECT lines"><b>Let's start with the relay.</b> About eighty lines, and this is the loop. Select rows where published_at is null.</p>
+    <p data-on="the loop code" data-focus="line:2-3" data-point="the SELECT lines"><b>Let's start with the relay.</b> This is the loop. Select rows where published_at is null.</p>
     <p data-on="the send line" data-focus="line:6" data-point="kafka.send … .get()"><b>Send each one</b>, wait for the ack. If a send fails, nothing gets marked.</p>
     <p data-on="the UPDATE and the main loop" data-focus="line:8-9" data-point="the last two lines"><b>After the batch</b>, one UPDATE sets published_at. Sleep a second, go again.</p>
     <p data-on="card: Why A came out" data-focus=".ops .card@0" data-point="the card"><b>And that's why A was published.</b> The relay asks "is this row published?", not "is the id bigger than the last one I saw?".</p>
@@ -385,7 +385,7 @@ WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = high
   <table class="cmp mt1">
     <thead><tr><th></th><th class="relay">Relay</th><th class="jdbc">JDBC Source</th><th class="dbz">Debezium</th></tr></thead>
     <tbody>
-      <tr><td>What you write</td><td>one Java class (~80 lines)</td><td>one JSON, on Kafka Connect</td><td>one JSON, on Kafka Connect, plus database setup</td></tr>
+      <tr><td>What you write</td><td>one Java class</td><td>one JSON, on Kafka Connect</td><td>one JSON, on Kafka Connect, plus database setup</td></tr>
       <tr><td>Where the mark lives</td><td><code>published_at</code> in the row, set after <code>acks=all</code></td><td>the highest id seen, in Kafka Connect's offsets</td><td>a log position (WAL LSN / binlog), in Kafka Connect's offsets</td></tr>
       <tr><td>Late commit (slide 4)</td><td class="ok">✓ next sweep</td><td class="lost">✗ lost, silently</td><td class="ok">✓ next, in commit order</td></tr>
       <tr><td>Order in the topic</td><td>id order per sweep; a late row arrives out of id order</td><td>id order</td><td>commit order, per aggregate (key = <code>aggregate_id</code>)</td></tr>

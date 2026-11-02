@@ -47,23 +47,42 @@ pre.code .title { display:block; font-family:inherit; font-size:11px; opacity:.7
 .notes { display:none; }
 
 /* notes over the stage (N), to rehearse on one screen */
-.overlay { display:none; position:fixed; left:0; right:0; bottom:0; max-height:38%; overflow:auto; background:rgba(20,20,20,.94); color:#eee; padding:12px 20px; font-size:15px; line-height:1.5; }
+.overlay { display:none; position:fixed; left:0; right:0; bottom:0; max-height:46%; overflow:auto; background:rgba(20,20,20,.95); color:#eee; padding:0 20px 12px; font-size:var(--notes,18px); line-height:1.5; }
 .shownotes .overlay { display:block; }
 
 /* presenter mode (P opens a second window) */
 .presenter .viewport { right:42%; bottom:0; top:44px; align-items:flex-start; padding-top:12px; }
 .presenter .stage { transform-origin:top center; }
-.presenter .overlay { display:block; left:58%; top:44px; max-height:none; bottom:0; font-size:17px; }
+.presenter .overlay { display:block; left:58%; top:44px; max-height:none; bottom:0; font-size:var(--notes,22px); }
 .presenter .progress { display:none; }
 .bar { display:none; }
 .presenter .bar { display:flex; gap:24px; align-items:center; position:fixed; top:0; left:0; right:0; height:44px; padding:0 20px; background:#000; color:#ddd; font-size:15px; }
-.overlay p { margin:0 0 10px; opacity:.45; }
-.overlay p.now { opacity:1; }
-.overlay p.time { opacity:.8; color:#9cc3ff; font-weight:600; }
-.overlay p.src { opacity:.5; font-size:12px; }
+.overlay .time { position:sticky; top:0; z-index:1; margin:0 -20px 8px; padding:10px 20px 6px; background:#141414; color:#9cc3ff; font-weight:600; font-size:.8em; }
+.overlay .say { margin:0 0 8px; padding:6px 12px 8px; border-left:4px solid transparent; opacity:.6; }
+.overlay .say.past { opacity:.3; }
+.overlay .say.now { opacity:1; border-color:#fde047; background:rgba(255,255,255,.07); }
+.overlay .cue { display:block; font-size:.65em; letter-spacing:.12em; text-transform:uppercase; opacity:.7; margin-bottom:2px; }
+.overlay .say.now .cue { color:#fde047; opacity:1; }
+.overlay .do { display:inline-block; font-style:normal; font-size:.62em; letter-spacing:.06em; text-transform:uppercase; border-radius:4px; padding:1px 7px; margin:0 3px; vertical-align:middle; background:#1e3a5f; color:#93c5fd; }
+.overlay .do.p { background:#4a2f10; color:#fbbf24; }
+.overlay .do.c { background:#14532d; color:#86efac; }
+.overlay .pt { display:block; font-size:.72em; color:#93c5fd; margin-bottom:4px; }
+.overlay .nxt { margin:12px 0 0; padding:8px 12px; font-size:.75em; opacity:.6; border-top:1px solid #333; }
+.bar .late { color:#f87171; font-weight:600; }
+#laser { position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; background:#ef4444; box-shadow:0 0 0 3px rgba(239,68,68,.35), 0 0 14px 5px rgba(239,68,68,.55); pointer-events:none; opacity:0; transition:opacity .3s; z-index:5; }
+#laser.on { opacity:1; }
+.ring { position:absolute; border:3px solid #f59e0b; border-radius:7px; box-shadow:0 0 0 4px rgba(245,158,11,.22), 0 0 18px 4px rgba(245,158,11,.45); pointer-events:none; z-index:4; animation:ringin .45s ease-out; }
+@keyframes ringin { from { transform:scale(1.06); opacity:0; } }
+/* narrow presenter window (one screen, Zoom): script only, the deck window sits beside it */
+@media (max-width:760px) {
+  .presenter .viewport { display:none; }
+  .presenter .overlay { left:0; }
+  .presenter .bar { font-size:13px; gap:12px; }
+  .presenter .help { display:none; }
+}
 .bar button { background:#333; color:#ddd; border:0; border-radius:4px; padding:4px 10px; font:inherit; cursor:pointer; }
 .help { margin-left:auto; opacity:.6; font-size:13px; }
-/* slide 5 animation, slide 7 figures, slide 8 flow */
+/* slide 4 animation, slides 5-8 cards and figures, slide 10 flow */
 .steps { display:flex; gap:6px; margin:2px 0 10px; font-size:12px; }
 .steps span { flex:1; border:1px solid var(--line); border-radius:12px; padding:2px 8px; text-align:center; opacity:.45; }
 .steps span.done { opacity:.8; }
@@ -123,68 +142,35 @@ pre.code .title { background:#f3f4f6; border-bottom:1px solid #e5e7eb; margin:-1
 pre.code code { background:none; padding:0; font-size:inherit; border-radius:0; }
 .hl { background:#fef08a; box-shadow:0 0 0 2px #fef08a; border-radius:2px; font-weight:600; }
 .hl2 { background:#fecaca; box-shadow:0 0 0 2px #fecaca; border-radius:2px; font-weight:600; }
+.cols2 { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+table.cmp { width:100%; border-collapse:collapse; font-size:12.5px; line-height:1.35; table-layout:fixed; }
+table.cmp th, table.cmp td { text-align:left; vertical-align:top; padding:3px 8px; border-bottom:1px solid #eee; }
+table.cmp th { font-weight:600; border-bottom:1px solid var(--line); }
+table.cmp th:first-child { width:140px; }
+table.cmp td:first-child { font-weight:600; }
 @media print { .viewport{position:static} }
 </style>
 </head>
 <body class="rendering">
-<div class="bar"><span id="clock">00:00</span><button id="reset">reset</button><span id="count"></span><span class="help">→ / space next · ← back · N notes · F fullscreen</span></div>
+<div class="bar"><span id="clock">00:00</span><span id="target"></span><button id="reset">reset</button><span id="count"></span><span class="help">→ / space next · ← back · S script page · + / − text size · F fullscreen · mouse over the slide = red pointer</span></div>
 <div class="viewport"><div class="stage" id="stage">
 
 <!-- 1 -->
 <section class="slide" style="padding-top:150px">
-  <h1 style="font-size:56px;line-height:1.15">Outbox: who moves the row to Kafka?</h1>
+  <h1 style="font-size:56px;line-height:1.15">Outbox: relay vs JDBC Source vs Debezium</h1>
   <div class="lg op">Same table, same write, three publishers</div>
   <div class="mt6 lg">Vitor Machado</div>
   <div class="mono sm op">github.com/machado-vitor/outbox-compared</div>
   <div class="foot" style="bottom:32px">Postgres 18.6 · MySQL 8.4 · Kafka 4.3.1 · kafka-connect-jdbc 10.9.9 · Debezium 3.3.2.Final · 17 passing tests, 2026-10-13</div>
-  <aside class="notes" data-time="0:15 · running 0:15">
-    <p>Hi, I'm Vitor Machado. In ten minutes: one outbox table, three ways to get its rows to Kafka, and a real test where one of them silently loses an event.</p>
+  <aside class="notes" data-time="0:25 · running 0:25">
+    <p data-on="title slide"><b>Hi everyone, I'm Vitor.</b> You have an outbox table, and you need to get those rows into Kafka. I tried three ways: a relay I wrote, Confluent's JDBC Source connector, and Debezium. All with real Postgres, MySQL and Kafka. I'll show you how each one works, what it costs, and when I'd use it.</p>
   </aside>
 </section>
 
 <!-- 2 -->
 <section class="slide">
-  <div class="kicker">The problem</div>
-  <h1>The bug you've already seen: the dual write</h1>
-  <div class="stack">
-    <div class="mm" data-until="1" data-zoom=".8" style="justify-content:flex-start;"><div class="mermaid">
-sequenceDiagram
-    participant App
-    participant DB as Postgres
-    participant Kafka
-    App->>DB: INSERT orders
-    DB-->>App: COMMIT ok
-    Note over App: the process dies here
-    App--xKafka: send(order.created) never happens
-    Note over DB,Kafka: (a) order saved, event never sent
-</div></div>
-    <div class="mm" data-step="1" data-zoom=".8" style="justify-content:flex-start;"><div class="mermaid">
-sequenceDiagram
-    participant App
-    participant DB as Postgres
-    participant Kafka
-    App->>DB: INSERT orders (transaction open)
-    App->>Kafka: send(order.created)
-    Kafka-->>App: ack
-    App--xDB: the transaction aborts (connection drops, deadlock…)<br/>or the process dies before COMMIT
-    Note over DB,Kafka: (b) event sent, order never saved
-</div></div>
-  </div>
-  <div data-step="2" class="mt2 c">
-    <div class="xl b">Two systems, two writes, no transaction covering both</div>
-    <div class="sm op mt1">Reversing the writes only moves the failure · a local retry queue is still a dual write · Kafka can't join your database's transaction</div>
-  </div>
-  <aside class="notes" data-time="0:55 · running 1:10">
-    <p>Let me start with a bug almost everyone has seen. The service saves the order in Postgres, the commit succeeds, and then it publishes the event to Kafka. If the process dies in between, the order is saved and the event never goes out: inventory never hears about the order.</p>
-    <p>Doing it the other way round doesn't help. If you publish while the transaction is still open and it aborts, you have sent an event for an order that doesn't exist.</p>
-    <p>This has a name: the dual write. Two systems, two writes, and no transaction covering both. A retry kept in a local queue outside the transaction is still writing to two places. And Kafka can't take part in the database's transaction.</p>
-  </aside>
-</section>
-
-<!-- 3 -->
-<section class="slide">
-  <div class="kicker">The fix</div>
-  <h1>The idea: write the event to the same database, in the same transaction</h1>
+  <div class="kicker">Context</div>
+  <h1>The outbox: the event is a row in the order's own transaction</h1>
   <div class="stack">
     <div class="mm" data-until="1" data-zoom=".8" style="justify-content:flex-start"><div class="mermaid">
 flowchart LR
@@ -206,22 +192,21 @@ flowchart LR
     outbox --> pub{{"publisher?"}} --> kafka["Kafka · order.events"]
 </div></div>
   </div>
-  <div class="sm mt3"><b>outbox table</b>: the event is a row written together with the order. It exists if, and only if, the order committed.</div>
-  <div class="sm mt1 op"><code>event_id</code>: stable id the consumer dedupes by · <code>published_at</code>: set by the relay once sent</div>
-  <div data-step="1" class="sm mt2"><b>publisher</b>: whatever takes the row from the outbox to Kafka (a polling relay or worker, a connector…).</div>
-  <div data-step="2" class="mt4 xl b c">Who moves the row, and how does it know what has already gone out?</div>
-  <aside class="notes" data-time="0:55 · running 2:05">
-    <p>The fix is to write the event to the same database, in the same transaction as the order. That's the outbox table. If the order commits, the row exists; if it rolls back, the row goes with it. Each row has an event_id, a stable id the consumer uses to drop duplicates. And it has a published_at column, which the relay sets once the event goes out; the connectors never touch it.</p>
-    <p>Someone still has to take that row to Kafka. I'll call that someone the publisher: it can be a relay, which is the classic polling worker, or it can be a connector.</p>
-    <p>And the question of this talk is: who moves the row, and how does it know what has already gone out?</p>
+  <div class="sm mt3"><b>The dual write</b>: save the order, then publish. If the service dies in between, the event is never sent. Kafka can't join the database transaction.</div>
+  <div class="sm mt2"><b>The outbox</b>: the event is a row, saved in the same transaction as the order. If the order rolls back, the row is gone too. <code>event_id</code>: used to drop duplicates · <code>published_at</code>: set by the relay after sending.</div>
+  <div data-step="1" class="sm mt2"><b>The publisher</b>: whatever takes the row from the table to Kafka: a process you write, or a connector.</div>
+  <div data-step="1" class="mt4 xl b c">The publisher must know which rows were already sent. The three do it in different ways.</div>
+  <aside class="notes" data-time="0:45 · running 1:10">
+    <p data-on="the diagram, without the publisher" data-focus=".cluster" data-point="the box 'one transaction'"><b>Quick recap of the problem.</b> You save the order, then you send the event to Kafka. If the service dies between those two, the order is there but the event never goes out. And you can't put Kafka inside the database transaction. So, the outbox: the event is a row, in the same transaction as the order. If the order rolls back, the row goes away with it.</p>
+    <p data-on="the publisher node and the line at the bottom" data-focus="[id*=&quot;-flowchart-pub-&quot;]" data-point="the publisher? node"><b>But someone still has to take that row to Kafka.</b> I'll call that the publisher. And it has to know which rows it already sent. That's where the three differ.</p>
   </aside>
 </section>
 
-<!-- 4 -->
+<!-- 3 -->
 <section class="slide">
   <div class="kicker">Three publishers</div>
   <h1>The publishers: one table, three readers</h1>
-  <div class="mm" data-zoom=".72" style=""><div class="mermaid">
+  <div class="mm" data-zoom=".72"><div class="mermaid">
 flowchart LR
     app["App"] -->|"INSERT (same tx)"| outbox[("outbox table")]
     app ~~~ wal["WAL / binlog<br/>transaction log"]
@@ -237,20 +222,20 @@ flowchart LR
     dbz --> kafka
 </div></div>
   <div class="sm mt1">
-    <div data-step="1"><b class="relay">relay / polling worker</b>: a process you own that polls the table every so often.</div>
-    <div data-step="2"><b class="jdbc">JDBC Source</b> (a <b>Kafka Connect</b> connector: Kafka's own service for running connectors): the same polling, but driven by an <code>id</code> cursor, and no code to write.</div>
-    <div data-step="3"><b class="dbz">Debezium</b> (Kafka Connect): <b>CDC</b>, change data capture, reading the Postgres WAL / the MySQL binlog.</div>
+    <div data-step="1"><b class="relay">relay / polling worker</b>: a process you own that polls the table every so often, sends, and marks the row.</div>
+    <div data-step="2"><b class="jdbc">JDBC Source</b> (a <b>Kafka Connect</b> connector: Kafka's own service for running connectors from a JSON config): the same polling, driven by an <code>id</code> cursor, no code to write.</div>
+    <div data-step="3"><b class="dbz">Debezium</b> (Kafka Connect): <b>CDC</b>, change data capture, reading the Postgres WAL / the MySQL binlog instead of the table.</div>
   </div>
   <div class="foot">POCs: same schema, same write; real Postgres, MySQL, Kafka and Kafka Connect (Testcontainers) · relay and JDBC Source on Postgres, Debezium on both</div>
-  <aside class="notes" data-time="1:00 · running 3:05">
-    <p>In this study, three publishers move rows from the same table to Kafka.</p>
-    <p>The first is the relay, the polling worker: a process you own that polls the table every so often for rows that haven't been published yet. It sends each one to Kafka and marks it as published.</p>
-    <p>The second is the JDBC Source, a Kafka Connect connector. Kafka Connect is Kafka's own service for running connectors: you hand it a JSON configuration, and you write no code. It does the same polling, but it keeps a cursor: the highest id it has seen.</p>
-    <p>The third is Debezium, also on Kafka Connect. It's CDC, change data capture: instead of reading the table, it reads the database's transaction log, the Postgres WAL or the MySQL binlog. All of them run against real Postgres, MySQL and Kafka in the tests.</p>
+  <aside class="notes" data-time="0:40 · running 1:50">
+    <p data-on="the map" data-focus="[id*=&quot;-flowchart-outbox-&quot;]" data-point="the outbox table"><b>So, three publishers, same table.</b></p>
+    <p data-on="the relay line" data-focus="[id*=&quot;-flowchart-relay-&quot;]" data-point="the relay box"><b>The relay</b> is a process you write yourself. Every second it reads the table, sends the new rows, and marks them as sent.</p>
+    <p data-on="the JDBC Source line" data-focus="[id*=&quot;-flowchart-jdbc-&quot;]" data-point="the JDBC Source box"><b>The JDBC Source</b> is a Kafka Connect connector: a JSON file, no code. It also polls the table, but it keeps a cursor, the highest id it has seen.</p>
+    <p data-on="the Debezium line" data-focus="[id*=&quot;-flowchart-wal-&quot;]" data-point="the WAL / binlog box"><b>And Debezium</b>, also on Kafka Connect. This one is CDC: it doesn't read the table, it reads the transaction log, the WAL in Postgres or the binlog in MySQL.</p>
   </aside>
 </section>
 
-<!-- 5 -->
+<!-- 4 -->
 <section class="slide" data-steps="5" data-sim>
   <div class="kicker">Same pair of inserts</div>
   <h1>The scenario: A gets the lower id, but commits after B</h1>
@@ -269,72 +254,112 @@ flowchart LR
       <div class="card"><div class="t jdbc">JDBC Source</div><div class="q">id &gt; cursor?</div><div class="state" data-r="jdbcState"></div><div class="lbl">topic</div><div class="topic" data-r="jdbcTopic"></div><div class="res" data-r="jdbcRes"></div></div>
     </div>
   </div>
-  <div data-step="5" class="xs op mt2">"using incrementing mode to load data from such tables always results in some data loss" — Confluent, JDBC Source, Limitations · the same scenario runs in every POC's tests (outbox-relay/src/test/java/RelayTest.java:49-55)</div>
-  <aside class="notes" data-time="1:30 · running 4:35">
-    <p>Now let's walk, step by step, through the scenario that separates the three. Two concurrent transactions write to the same outbox, and all three publishers read from it.</p>
-    <p>Transaction A does its INSERT and gets id 1, but has not committed yet. The row exists, but nobody outside can see it.</p>
-    <p>Transaction B gets id 2 and commits right away. Notice: the database hands out the id at INSERT, not at COMMIT.</p>
-    <p>The publishers read. They all see only id 2 and publish B. The JDBC Source stores its cursor: the highest id it has seen, 2. Debezium actually streams; I just line it up with the others.</p>
-    <p>Now A commits. Id 1 shows up below the highest id the JDBC Source has already seen. That's not a corner case; it's everyday concurrency.</p>
-    <p>The publishers read again. The relay publishes A, because A's published_at is still null. Debezium publishes A, in the order the transactions committed. The JDBC Source publishes nothing. A is committed in the table, but it sits below the cursor, and no query will ever return it. Confluent's own docs say it plainly: incrementing mode always results in some data loss. The POC tests reproduce it.</p>
+  <div data-step="5" class="xs op mt2">"using incrementing mode to load data from such tables always results in some data loss" — Confluent, JDBC Source, Limitations · the same scenario runs in every POC's tests (outbox-relay/src/test/java/RelayTest.java:46-62)</div>
+  <aside class="notes" data-time="1:15 · running 3:05">
+    <p data-on="empty table, three cards" data-focus=".drains" data-point="the three cards"><b>Okay, here's the test that shows the difference.</b> Two transactions writing to the outbox at the same time, three publishers reading it.</p>
+    <p data-on="A: INSERT · row 1, state open" data-focus="[data-r=&quot;rows&quot;] tr@0" data-point="row 1"><b>Transaction A</b> inserts a row, gets id 1, but doesn't commit yet. The row is there, but nobody can see it.</p>
+    <p data-on="B: INSERT + COMMIT · row 2, COMMIT B in the log" data-focus="[data-r=&quot;rows&quot;] tr@1" data-point="row 2"><b>Transaction B</b> comes in, gets id 2, and commits right away. Notice: the id is given at INSERT, not at COMMIT.</p>
+    <p data-on="publishers read · B in all three topics, cursor = 2" data-focus="[data-r=&quot;jdbcState&quot;]" data-point="cursor = 2 on the JDBC card"><b>Now the publishers read.</b> They only see id 2, so all three publish B. The JDBC Source saves its cursor: 2.</p>
+    <p data-on="A: COMMIT · row 1 committed, COMMIT A in the log" data-focus="[data-r=&quot;rows&quot;] tr@0" data-point="row 1, now committed"><b>Then A commits.</b> Id 1 shows up, but it's lower than the cursor. And this is normal with concurrent transactions.</p>
+    <p data-on="publishers read again · relay and Debezium publish A, the JDBC card turns red" data-focus="[data-r=&quot;jdbcRes&quot;]" data-point="the red line on the JDBC card"><b>The publishers read again.</b> The relay publishes A, because published_at is still null. Debezium publishes A, in commit order. And the JDBC Source? Nothing. A is in the table, below the cursor, and no query will ever ask for it. <i class="do p">pause</i> Confluent's own docs say it: incrementing mode always loses some data. Okay, now each one in detail.</p>
+  </aside>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">Publisher 1 · code you own</div>
+  <h1><span class="relay">Relay</span>: the mark is in the row, written after the ack</h1>
+<pre class="code" data-lang="java"><span class="title">outbox-relay/src/main/java/Relay.java:45-47, 51, 54, 59, 73-79 · the whole publisher is this sweep plus a loop</span><code>try (var st = db.prepareStatement("""
+        SELECT id, event_id, aggregate_id, event_type, payload
+        FROM outbox ⟦WHERE published_at IS NULL⟧ ORDER BY id LIMIT ?""")) {
+    // … for each row:
+    var record = new ProducerRecord&lt;&gt;(TOPIC, ⟦rs.getString("aggregate_id")⟧, rs.getString("payload"));
+    kafka.send(record)⟦.get()⟧; // blocks until acks=all; a failure aborts the sweep, nothing is marked
+}
+db.prepareStatement("UPDATE outbox ⟦SET published_at = now()⟧ WHERE id = ANY (?)"); // … then mark the batch
+// main(): while (true) { while (relay.sweep() == BATCH) {} ⟦Thread.sleep(1000)⟧; }</code></pre>
+  <div class="cols3 ops mt3">
+    <div data-step="3" class="card"><div class="t relay">Why A came out</div>The question is "is it published?", not "is the id above where I stopped?". A late commit is one more unpublished row.</div>
+    <div data-step="4" class="card"><div class="t">The cost: a duplicate</div>Kafka has the event but the UPDATE never ran: the next sweep sends it again. RelayTest.java:85-101 pauses Kafka mid-send; the topic holds the same <code>event_id</code> twice.<div class="fig"><span class="chip">e1</span><span class="chip">e2</span><span class="chip dup">e2</span><div class="op">the consumer drops the second e2</div></div></div>
+    <div data-step="5" class="card"><div class="t">What you get</div><div class="li">· ~80 lines, one connection, no DB setup</div><div class="li">· every failure shows up in a debugger</div><div class="li">· latency = the poll interval (1 s here)</div><div class="li">· the table grows: purge it</div><div class="li">· one instance keeps per-aggregate order</div></div>
+  </div>
+  <aside class="notes" data-time="1:05 · running 4:10">
+    <p data-on="the loop code" data-focus="line:2-3" data-point="the SELECT lines"><b>Let's start with the relay.</b> About eighty lines, and this is the loop. Select rows where published_at is null.</p>
+    <p data-on="the send line" data-focus="line:6" data-point="kafka.send … .get()"><b>Send each one</b>, wait for the ack. If a send fails, nothing gets marked.</p>
+    <p data-on="the UPDATE and the main loop" data-focus="line:8-9" data-point="the last two lines"><b>After the batch</b>, one UPDATE sets published_at. Sleep a second, go again.</p>
+    <p data-on="card: Why A came out" data-focus=".ops .card@0" data-point="the card"><b>And that's why A was published.</b> The relay asks "is this row published?", not "is the id bigger than the last one I saw?".</p>
+    <p data-on="card: The cost, a duplicate" data-focus=".chip.dup" data-point="the second e2 chip"><b>The cost is a duplicate.</b> Kafka got the event, but the UPDATE didn't run, so the next loop sends it again. One test pauses Kafka during the send, and the topic gets the same event_id twice. The consumer just drops the second one.</p>
+    <p data-on="card: What you get" data-focus=".ops .card@2" data-point="the card"><b>Latency</b> is the poll interval. The table grows, so you delete old rows. And you get one class, no special database setup, and when something breaks, you can debug it.</p>
   </aside>
 </section>
 
 <!-- 6 -->
 <section class="slide">
-  <div class="kicker">Why</div>
-  <h1>Why: where the "published" mark lives</h1>
-  <div class="stack">
-<pre class="code" data-lang="java" data-until="1"><span class="title">relay · outbox-relay/src/main/java/Relay.java:45-47,54,59 · "is it published?", then send, wait for the ack, mark</span><code>try (var st = db.prepareStatement(&quot;&quot;&quot;
-        SELECT id, event_id, aggregate_id, event_type, payload
-        FROM outbox ⟦WHERE published_at IS NULL⟧ ORDER BY id LIMIT ?&quot;&quot;&quot;)) {
-// …
-        kafka.send(record)⟦.get()⟧; // blocks until acks=all; a failure aborts the sweep, nothing is marked
-// …
-    try (var st = db.prepareStatement(&quot;UPDATE outbox ⟦SET published_at = now()⟧ WHERE id = ANY (?)&quot;)) {</code></pre>
-<pre class="code" data-lang="json" data-step="1" data-until="2"><span class="title">Debezium · outbox-debezium/connector.json:9-11,13 · no query: it reads the WAL from a slot, in commit order</span><code>&quot;plugin.name&quot;: &quot;pgoutput&quot;,
-⟦&quot;slot.name&quot;: &quot;outbox_slot&quot;⟧,
-&quot;publication.name&quot;: &quot;outbox_pub&quot;,
-⟦&quot;table.include.list&quot;: &quot;public.outbox&quot;⟧,</code></pre>
-<pre class="code" data-lang="sql" data-step="2"><span class="title">JDBC Source · connector.json:9 + the WHERE the connector appends · "id above the cursor?" (the connector never sets published_at)</span><code>SELECT * FROM (SELECT id, event_id::text AS event_id, aggregate_id, event_type, payload::text AS payload
-               FROM outbox WHERE ⟦!published_at IS NULL⟧) o
-WHERE ⟦&quot;id&quot; &gt; ?⟧ ORDER BY &quot;id&quot; ASC</code></pre>
+  <div class="kicker">Publisher 2 · Kafka Connect</div>
+  <h1><span class="jdbc">JDBC Source</span>: the mark is an id cursor, assigned before the commit</h1>
+<pre class="code" data-lang="json"><span class="title">outbox-jdbc-source/connector.json:6-7, 9, 11 · no code: this JSON is the publisher (query abridged)</span><code>⟦!"mode": "incrementing"⟧,
+⟦"incrementing.column.name": "id"⟧,
+"query": "SELECT * FROM (SELECT id, event_id::text AS event_id, … FROM outbox WHERE ⟦published_at IS NULL⟧) o",
+"poll.interval.ms": "1000",</code></pre>
+<pre class="code mt2" data-lang="sql" data-step="2"><span class="title">what actually runs · the connector wraps the query, appends its cursor, and keeps that cursor in Kafka Connect</span><code>SELECT * FROM (SELECT id, event_id::text AS event_id, aggregate_id, event_type, payload::text AS payload
+               FROM outbox WHERE ⟦!published_at IS NULL⟧) o  -- the connector never sets it: this filter does nothing
+WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = highest id seen; after B: {"incrementing": 2}</code></pre>
+  <div class="cols3 ops mt3">
+    <div data-step="3" class="card"><div class="t jdbc">Why A was lost</div>Postgres and MySQL hand out the id at INSERT, not at COMMIT. A committed below the cursor, and nothing will ever ask for it again. No error, no log line.<div class="fig op">"using incrementing mode to load data from such tables always results in some data loss" — Confluent, JDBC Source, Limitations</div></div>
+    <div data-step="4" class="card"><div class="t">Timestamp mode?</div>Timestamp + incrementing with a safety delay only narrows the window: safe only if every transaction finishes within the delay, and <code>now()</code> is the transaction's start, not its commit.</div>
+    <div data-step="4" class="card"><div class="t">Where it is fine</div>A single-writer table, a read replica, a legacy system without CDC: zero code, one JSON. Not an outbox with concurrent writers.<div class="fig op">Nothing marks the table, so there is no safe purge by state either.</div></div>
   </div>
-  <div data-step="3" class="cols3 mt3">
-    <div class="card"><div class="t relay">in the row itself · relay</div><code>published_at</code>, written only after Kafka acknowledges: the row says whether it went out.</div>
-    <div class="card"><div class="t dbz">at a position in the commit log · Debezium</div>Stored in Kafka Connect; A's COMMIT enters the log after B's, so the position can never skip past it.</div>
-    <div class="card"><div class="t jdbc">in an id, assigned before commit · JDBC Source</div>The highest id seen, also stored in Kafka Connect; the connector never writes to the table. When A commits, it is already below the cursor.</div>
-  </div>
-  <div data-step="3" class="mt4 xl b c">The real difference isn't polling vs CDC: it's where the mark lives.</div>
-  <aside class="notes" data-time="1:20 · running 5:55">
-    <p>Remember the question from the start: how does the publisher know what has already gone out? Each one asks something different. The relay asks: which rows have a null published_at? It sends each one, waits for Kafka's ack, and only then marks it. A's published_at is still null, so the relay's next read finds it.</p>
-    <p>Debezium runs no query at all: this config is all there is. It reads the transaction log from a replication slot, in commit order. A's COMMIT enters the log after B's COMMIT, so Debezium's position can never skip past A.</p>
-    <p>The JDBC Source asks: which rows have an id above the cursor? The query does filter on published_at, but the connector never sets it, so in practice the cursor decides. When A commits, its id is already below the cursor, and nobody asks for it again.</p>
-    <p>So there are three places for the published mark: in the row itself; at a log position, assigned at commit; or in an id, assigned before commit. The real difference isn't polling versus CDC. It's where the mark lives.</p>
+  <aside class="notes" data-time="1:00 · running 5:10">
+    <p data-on="the connector JSON" data-focus="line:1-2" data-point="mode and the cursor column"><b>Now the JDBC Source.</b> No code, just this JSON. Mode incrementing, and the cursor column is id.</p>
+    <p data-on="the query line" data-focus="line:3" data-point="the query"><b>And a query.</b> It filters on published_at, but the connector never writes that column, so the filter does nothing.</p>
+    <p data-on="the query that actually runs" data-focus="line:2/3" data-point="the WHERE id > ? line"><b>This is the query that actually runs.</b> The connector adds "id bigger than the cursor", and the cursor lives in Kafka Connect: after B, it's 2.</p>
+    <p data-on="card: Why A was lost" data-focus=".ops .card@0" data-point="the card"><b>So that's why A was lost.</b> The id was given at INSERT. A committed below the cursor, and nothing ever asks for it again. No error, no log line, nothing.</p>
+    <p data-on="cards: Timestamp mode? and Where it is fine" data-focus=".ops .card@2" data-point="the card 'Where it is fine'"><b>Timestamp mode</b> with a delay only makes the window smaller. So the JDBC Source is fine for a single-writer table, or an old system without CDC. Not for an outbox with many writers.</p>
   </aside>
 </section>
 
 <!-- 7 -->
 <section class="slide">
-  <div class="kicker">Operations</div>
-  <h1>In production: what each publisher costs you</h1>
-  <div class="sm op">JDBC Source: silent loss, as on slide 5. The other two:</div>
-  <div class="cols3 mt1 ops">
-    <div data-step="1" class="card"><div class="t relay">Relay</div>
-      <div class="li">· A failure between send and mark means a duplicate: the same <code>event_id</code> twice in a test that pauses Kafka during the send</div>
-      <div class="li">· The table grows: purge it, for example by partitioning on <code>published_at</code></div>
-      <div class="li">· Latency = polling interval (1 s in the POC)</div>
-      <div class="fig"><div class="lbl">topic, when the ack is lost (Kafka has it, row not marked)</div><span class="chip">e1</span><span class="chip">e2</span><span class="chip dup">e2</span><div class="op">the consumer drops the second e2 by <code>event_id</code></div></div>
-    </div>
-    <div data-step="2" class="card"><div class="t dbz">Debezium · Postgres</div>
+  <div class="kicker">Publisher 3 · Kafka Connect · CDC</div>
+  <h1><span class="dbz">Debezium</span>: the mark is a position in the commit log</h1>
+<pre class="code bk" data-lang="json"><span class="title">outbox-debezium/connector.json:9-14, 18, 20, 22, 24 · no code: this JSON replaces the relay</span><code>"plugin.name": "pgoutput",
+⟦"slot.name": "outbox_slot"⟧,
+"publication.name": "outbox_pub",
+"publication.autocreate.mode": "filtered",
+⟦"table.include.list": "public.outbox"⟧,
+⟦!"snapshot.mode": "no_data"⟧,
+"transforms.outbox.type": "⟦io.debezium.transforms.outbox.EventRouter⟧",
+⟦"transforms.outbox.table.field.event.key": "aggregate_id"⟧,
+"transforms.outbox.table.fields.additional.placement": "⟦event_id:header:event_id⟧,event_type:header:event_type",
+"transforms.outbox.route.topic.replacement": "order.events"</code></pre>
+  <div class="xs op mt1">MySQL (outbox-debezium-mysql/connector.json): the same EventRouter; <code>database.server.id</code> and a schema-history topic instead of the slot and the publication.</div>
+  <div class="cols3 ops mt2">
+    <div data-step="3" class="card"><div class="t dbz">Why A came out, in commit order</div>No query. The slot streams the WAL in commit order; A's COMMIT entered the log after B's, so the position (an LSN, kept in Kafka Connect) can't skip it.</div>
+    <div data-step="3" class="card"><div class="t">What you get</div><div class="li">· milliseconds, no polling</div><div class="li">· zero application code</div><div class="li">· commit order per aggregate (key = <code>aggregate_id</code>)</div><div class="li">· the table can stay empty: DELETE in the same tx, the EventRouter ignores deletes</div></div>
+    <div data-step="3" class="card"><div class="t">Connector down, then back</div>The slot keeps the WAL while the connector is gone; rows written in the gap are published on return (tested on both databases).<div class="fig op">Catch: <code>snapshot.mode=no_data</code> never publishes rows written before streaming started.</div></div>
+  </div>
+  <aside class="notes" data-time="0:55 · running 6:05">
+    <p data-on="the connector JSON" data-focus="line:2-6" data-point="slot, publication, snapshot"><b>Then Debezium.</b> Also no code: this JSON replaces the relay. A replication slot, a publication with just the outbox table, and snapshot mode no_data.</p>
+    <p data-on="the EventRouter lines" data-focus="line:7-10" data-point="the transform"><b>Then the EventRouter transform</b> turns each outbox INSERT into a Kafka record: key is the aggregate_id, event_id and event_type in headers, the payload as value.</p>
+    <p data-on="the MySQL line" data-focus="div.xs.op" data-point="the line under the code"><b>MySQL:</b> same transform, plus a server id and a schema history topic.</p>
+    <p data-on="the three cards" data-focus=".ops .card@0" data-point="the card 'Why A came out, in commit order'"><b>There's no query here.</b> Debezium reads the log from the slot, in commit order. A's commit came after B's, so the position can't skip it. You get commit order, milliseconds of latency, zero application code. And if the connector goes down, the slot keeps the WAL, so nothing is lost.</p>
+  </aside>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">Publisher 3 · in production</div>
+  <h1><span class="dbz">Debezium</span> in production: same guarantee, different incident</h1>
+  <div class="cols2 mt1 ops">
+    <div class="card"><div class="t dbz">Postgres: the slot holds the WAL</div>
       <div class="li">· <code>wal_level=logical</code> requires a restart</div>
       <div class="li">· The slot keeps WAL until the connector confirms: by default, a stopped connector fills the disk</div>
-      <div class="li">· <code>max_slot_wal_keep_size</code> caps it, but then the slot is lost, and with it the zero-loss guarantee</div>
+      <div class="li">· <code>max_slot_wal_keep_size</code> caps it, but then the slot is invalidated, the gap is lost, and the connector stops with an error</div>
       <div class="fig"><div class="lbl">WAL retained (stopped connector)</div><div class="dl">no cap</div><div class="disk"><div></div></div><div class="dl">with <code>max_slot_wal_keep_size</code></div><div class="disk capped"><div></div><i></i></div><div class="op">no cap: the disk fills · with a cap: retained WAL stops at the line, the slot is invalidated, and the events in the gap are lost</div></div>
     </div>
-    <div data-step="3" class="card"><div class="t dbz">Debezium · MySQL</div>
-      <div class="li">· Binlog on by default</div>
-      <div class="li">· Nothing pins the binlog: an outage longer than retention loses events, and the connector stops with an error</div>
+    <div data-step="1" class="card"><div class="t dbz">MySQL: nothing holds the binlog</div>
+      <div class="li">· Binlog on by default, no restart; needs a unique <code>server_id</code> and replication grants</div>
+      <div class="li">· An outage longer than the retention loses events, and the connector stops with an error</div>
       <div class="fig"><div class="lbl">default binlog retention · example: 2&#8209;day outage</div>
         <div class="tl">
           <span>MySQL (self-managed)</span><div class="track"><div class="rbar" style="width:100%"></div><i class="cut"></i></div><span class="ok">✓</span>
@@ -345,15 +370,41 @@ WHERE ⟦&quot;id&quot; &gt; ?⟧ ORDER BY &quot;id&quot; ASC</code></pre>
       </div>
     </div>
   </div>
-  <aside class="notes" data-time="1:25 · running 7:20">
-    <p>None of them is free. The JDBC Source's price is silent loss, as we just saw. The other two:</p>
-    <p>The relay duplicates: if Kafka has the event but the row isn't marked, the next read sends it again; one of our tests recorded exactly that. The table grows, so purge it, for example by partitioning. Latency is the polling interval, one second in the POC.</p>
-    <p>Debezium on Postgres needs wal_level=logical, which only changes with a restart. The replication slot, Postgres's bookmark for Debezium, keeps the WAL until the connector confirms: a stopped connector means a filling disk. max_slot_wal_keep_size caps it, but trades a full disk for a lost slot, and the zero-loss guarantee with it.</p>
-    <p>On MySQL the binlog is on by default, but nothing pins it: an outage longer than the retention loses events, and the connector stops with an error. Default retention is thirty days on MySQL, one day on Cloud SQL, and zero hours on RDS. So after a two-day outage, only plain MySQL still has the binlog; on the others the connector's position is gone, and so are the events in that gap.</p>
+  <div data-step="2" class="mt3 lg b c">Same guarantee, different incident: a <b>full disk</b> or <b>lost events</b>. In both cases the connector stops with an error. Monitor slot lag and binlog age (backup).</div>
+  <aside class="notes" data-time="1:00 · running 7:05">
+    <p data-on="the Postgres card; the disk bars fill by themselves" data-focus=".fig@0" data-point="the two disk bars"><b>The cost of Debezium is operations</b>, and it depends on the database. Postgres needs wal_level logical, so a restart. The slot keeps the WAL until the connector confirms it, so a stopped connector fills the disk. With a limit, the slot gets dropped instead: you lose the gap, and the connector stops with an error.</p>
+    <p data-on="the MySQL card" data-focus=".fig@1" data-point="the three bars against the dashed line"><b>On MySQL</b> the binlog is on by default, but nothing holds it for Debezium. If the connector is down longer than the retention, you lose events, and the connector stops with an error. Thirty days on normal MySQL, one day on Cloud SQL, zero on RDS.</p>
+    <p data-on="the line at the bottom" data-focus="[data-step=&quot;2&quot;]"><b>So, same guarantee, different incident:</b> full disk, or lost events. Both times the connector stops with an error, so you know. Monitor the slot and the binlog age.</p>
   </aside>
 </section>
 
-<!-- 8 -->
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker">Side by side</div>
+  <h1>Side by side: what you write, where the mark lives, what you lose</h1>
+  <table class="cmp mt1">
+    <thead><tr><th></th><th class="relay">Relay</th><th class="jdbc">JDBC Source</th><th class="dbz">Debezium</th></tr></thead>
+    <tbody>
+      <tr><td>What you write</td><td>one Java class (~80 lines)</td><td>one JSON, on Kafka Connect</td><td>one JSON, on Kafka Connect, plus database setup</td></tr>
+      <tr><td>Where the mark lives</td><td><code>published_at</code> in the row, set after <code>acks=all</code></td><td>the highest id seen, in Kafka Connect's offsets</td><td>a log position (WAL LSN / binlog), in Kafka Connect's offsets</td></tr>
+      <tr><td>Late commit (slide 4)</td><td class="ok">✓ next sweep</td><td class="lost">✗ lost, silently</td><td class="ok">✓ next, in commit order</td></tr>
+      <tr><td>Order in the topic</td><td>id order per sweep; a late row arrives out of id order</td><td>id order</td><td>commit order, per aggregate (key = <code>aggregate_id</code>)</td></tr>
+      <tr><td>Latency</td><td>the poll interval (1 s in the POC)</td><td><code>poll.interval.ms</code> (1 s in the POC, 5 s default)</td><td>milliseconds, no polling</td></tr>
+      <tr><td>The database needs</td><td>a connection and a partial index</td><td>a connection</td><td>PG: <code>wal_level=logical</code>, a slot, a publication · MySQL: binlog, <code>server_id</code>, replication grants</td></tr>
+      <tr><td>The failure you'll meet</td><td>a duplicate between ack and mark; the consumer dedupes</td><td>silent loss under everyday concurrency</td><td>PG: full disk or lost slot · MySQL: expired binlog; the connector stops with an error</td></tr>
+      <tr><td>Cleanup</td><td>purge or partition by <code>published_at</code></td><td>nothing marks the table</td><td>DELETE in the same tx (the EventRouter ignores deletes), or a purge</td></tr>
+    </tbody>
+  </table>
+  <div data-step="3" class="mt3 xl b c">The real difference isn't polling vs CDC: it's where the mark lives.</div>
+  <aside class="notes" data-time="0:30 · running 7:35">
+    <p data-on="the table" data-focus="tbody tr@0" data-point="the row 'What you write'"><b>Here's everything side by side.</b> What you write: a class, a JSON, a JSON.</p>
+    <p data-on="row 2" data-focus="tbody tr@1" data-point="the row 'Where the mark lives'"><b>Where the mark lives:</b> in the row, in an id, in a log position.</p>
+    <p data-on="row 3" data-focus="tbody tr@2" data-point="the row 'Late commit'"><b>The late commit:</b> next loop, lost, commit order. The other rows are for reference.</p>
+    <p data-on="the line at the bottom" data-focus="[data-step=&quot;3&quot;]"><i class="do p">pause</i> <b>So the difference is not polling versus CDC.</b> The relay polls and it's safe. The JDBC Source polls and loses data. The difference is where the mark lives. <i class="do p">pause</i></p>
+  </aside>
+</section>
+
+<!-- 10 -->
 <section class="slide">
   <div class="kicker">Decision</div>
   <h1>Which one? Two questions, then a default</h1>
@@ -369,15 +420,16 @@ WHERE ⟦&quot;id&quot; &gt; ?⟧ ORDER BY &quot;id&quot; ASC</code></pre>
     <div data-step="3" class="an relay"><b>Relay.</b> <span>You own the code and the database needs no special setup; it's one class, and every failure shows up in a debugger; one instance keeps per-aggregate order.</span></div>
   </div>
   <div data-step="3" class="mt4 sm c">Postgres or MySQL under Debezium: both deliver commit order; what changes is the incident, <b>full disk</b> or <b>lost events</b>.</div>
-  <aside class="notes" data-time="1:10 · running 8:30">
-    <p>So which one? Two questions, then a default.</p>
-    <p>First: does the outbox have concurrent writers? It almost always does, and then the JDBC Source is out. Incrementing mode loses events silently. Timestamp mode with a safety delay only narrows the window: it works only if every transaction finishes within that delay. It does fit outside the outbox, say on a read replica or a legacy system without CDC.</p>
-    <p>Second: do latency and commit order matter, and is someone going to own the slot or the binlog retention? Then Debezium. In the topic, commit order holds per aggregate, here per order, because the message key is the aggregate_id. Zero application code, but one more thing to operate.</p>
-    <p>Otherwise, the relay: you own the code and keep the database free of special setup. It's one class, and every failure shows up in a debugger. Finally, Postgres or MySQL under Debezium? Both deliver commit order; what changes is the incident: a full disk or lost events.</p>
+  <aside class="notes" data-time="0:40 · running 8:15">
+    <p data-on="empty"><b>So how do you choose?</b> Two questions, then a default.</p>
+    <p data-on="question 1, JDBC Source out" data-focus=".an.jdbc" data-point="the red box"><b>Does the outbox have many writers?</b> Almost always yes, so the JDBC Source is out. Keep it for read replicas and old systems without CDC.</p>
+    <p data-on="question 2, Debezium" data-focus=".an.dbz" data-point="the green box"><b>Do you need low latency and commit order</b>, and will someone take care of the slot or the binlog? Then Debezium: zero application code, one more thing to operate.</p>
+    <p data-on="the default, relay, and the Postgres / MySQL line" data-focus=".an.relay" data-point="the blue box"><b>If not, the relay.</b> You own the code, the database needs nothing special, and you can debug everything. Postgres or MySQL: same guarantee, different incident.</p>
   </aside>
 </section>
-<!-- 9 -->
-<section class="slide center" style="padding-left:110px;padding-right:110px">
+
+<!-- 11 -->
+<section class="slide center" data-steps="2" style="padding-left:110px;padding-right:110px">
   <div class="kicker">Wrap-up</div>
   <h1>Takeaway: where the mark lives decides what you lose</h1>
   <div class="tk mt3">
@@ -391,11 +443,12 @@ WHERE ⟦&quot;id&quot; &gt; ?⟧ ORDER BY &quot;id&quot; ASC</code></pre>
   </div>
   <div class="lg b mt4 c">Thank you! · Vitor Machado</div>
   <div class="xs op c mt1">Backup slides for Q&amp;A follow: DDL, relay loop, producer settings, scaling, consumer dedupe, Debezium config, monitoring, purge.</div>
-  <aside class="notes" data-time="0:35 · running 9:05">
-    <p>One idea to take home: where the mark lives decides what you lose. In the row, or at a log position, a late commit is never skipped; if Debezium loses events, it's loud, the connector stops. In an id cursor, the JDBC Source or your own 'last id seen', a late commit vanishes silently. And even the safe two deliver twice, so dedupe by event_id. Next time, ask a publisher where it keeps its mark. Thank you!</p>
+  <aside class="notes" data-time="0:35 · running 8:50">
+    <p data-on="takeaway" data-focus=".tkrow@0" data-point="the ✓ line"><b>So the main idea:</b> where the mark lives decides what you lose. In the row, or in a log position, a late commit is never skipped.</p>
+    <p data-on="the ✗ line" data-focus=".tkrow@1" data-point="the ✗ line"><b>In an id cursor</b>, like the JDBC Source or your own "last id I saw", it's lost with no error. When Debezium loses events, the connector stops, so you know.</p>
+    <p data-on="the ! line · stay here for questions, End = backups" data-focus=".tkrow@2" data-point="the ! line"><b>Relay and Debezium</b> can still send twice, so dedupe by event_id. <i class="do p">pause</i> Before you pick a publisher, check where it keeps its mark. Thank you!</p>
   </aside>
 </section>
-
 
 <section class="slide backup">
   <div class="kicker">Backup · Q&amp;A</div>
@@ -563,6 +616,7 @@ DELETE FROM outbox WHERE id IN (
     <p>Backup slide for questions; not part of the ten minutes.</p>
   </aside>
 </section>
+<div id="laser"></div>
 </div></div>
 <div class="progress" id="progress"></div>
 <div class="overlay" id="notes"></div>
@@ -574,14 +628,15 @@ mermaid.initialize({ startOnLoad:false, theme:'default', fontFamily:'"Avenir Nex
 mermaid.run().then(() => { document.querySelectorAll("[data-zoom]").forEach(e => e.style.zoom = e.dataset.zoom); document.body.classList.remove('rendering'); window.__rendered = true })
 </script>
 <script>
-// Navigation: → / space / PageDown next, ← / PageUp back, Home / End, F fullscreen,
-// N shows the notes over the stage, P opens the presenter view in a second, synced window.
+// Navigation (keyboard only): → / space / PageDown next, ← / PageUp back, Home / End, F fullscreen,
+// N shows the notes over the stage, P opens the presenter view in a second, synced window,
+// S opens the script page, + / - resize the notes.
 const slides = [...document.querySelectorAll('.slide')]
 const steps = slides.map(s => Math.max(0, ...[...s.querySelectorAll('[data-step],[data-until]')]
   .flatMap(e => [+e.dataset.step || 0, +e.dataset.until || 0]), +s.dataset.steps || 0))
 const presenter = new URLSearchParams(location.search).has('presenter')
 let peer = presenter ? window.opener : null
-let i = 0, step = 0
+let i = 0, step = 0, notesPx = presenter ? 22 : 18
 
 function go(ni, ns, quiet) {
   i = Math.max(0, Math.min(slides.length - 1, ni))
@@ -593,11 +648,15 @@ function go(ni, ns, quiet) {
   })
   document.getElementById('progress').style.width = ((i + 1) / slides.length * 100) + '%'
   document.getElementById('count').textContent = `slide ${i + 1} / ${slides.length} · click ${step} / ${steps[i]}`
-  const notes = slides[i].querySelector('.notes')
-  const ps = [...notes.querySelectorAll('p')].map((p, k) => `<p class="${k === step ? 'now' : ''}">${p.innerHTML}</p>`)
-  document.getElementById('notes').innerHTML = `<p class="time">${i + 1}. [${notes.dataset.time}]</p>` + ps.join('')
+  const notes = slides[i].querySelector('.notes'), nx = slides[i + 1]
+  const ps = [...notes.querySelectorAll('p')]
+  document.getElementById('notes').innerHTML = `<div class="time">${i + 1} · ${slides[i].querySelector('h1').textContent} · ${notes.dataset.time}</div>`
+    + ps.map((p, k) => `<div class="say ${k < step ? 'past' : k === step ? 'now' : ''}"><span class="cue">${k === step ? 'now · ' : ''}${k ? 'click ' + k : 'on open'}${p.dataset.on ? ' · ' + p.dataset.on : ''}</span>${p.dataset.point ? `<span class="pt">highlight · ${p.dataset.point}</span>` : ''}${p.innerHTML} <i class="do c">${k < ps.length - 1 ? 'click' : 'next slide'} →</i></div>`).join('')
+    + (nx ? `<div class="nxt">next: ${i + 2} · ${nx.querySelector('h1').textContent}</div>` : '')
+  const now = document.querySelector('#notes .say.now'); if (now) now.scrollIntoView({ block: 'center' })
   const sim = sims.get(slides[i])
   if (sim) sim.setStep(step)
+  focus()
   history.replaceState(null, '', location.pathname + location.search + `#${i + 1}.${step}`)
   if (!quiet && peer && !peer.closed) peer.postMessage({ deck: [i, step] }, '*')
 }
@@ -618,15 +677,59 @@ addEventListener('keydown', e => {
   else if (k === 'End') go(slides.length - 1, steps[slides.length - 1])
   else if (k === 'f' || k === 'F') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
   else if (k === 'n' || k === 'N') document.body.classList.toggle('shownotes')
+  else if (k === 's' || k === 'S') openScript()
+  else if (k === '+' || k === '=' || k === '-') { notesPx = Math.max(12, notesPx + (k === '-' ? -2 : 2)); document.documentElement.style.setProperty('--notes', notesPx + 'px') }
   else if ((k === 'p' || k === 'P') && !presenter) {
     peer = open(location.pathname + '?presenter' + location.hash, 'outbox-presenter', 'width=1300,height=760')
   }
 })
-document.getElementById('stage').addEventListener('click', e => {
-  e.clientX > innerWidth / 2 ? next() : prev()
-})
+// Highlight: data-focus on a notes <p> names what the slide rings at that click. Forms: a CSS selector
+// (every visible match; "@n" picks one), "line:N[-M]" or "line:P/N[-M]" (lines of the P-th code block).
+function focus() {
+  document.querySelectorAll('.ring').forEach(r => r.remove())
+  const p = slides[i].querySelectorAll('.notes p')[step]
+  if (!p || !p.dataset.focus) return
+  const sl = slides[i], st = stageEl.getBoundingClientRect(), k = st.width / 980, groups = []
+  for (const sel of p.dataset.focus.split('|').map(x => x.trim())) {
+    const ln = /^line:(?:(\d+)\/)?(\d+)(?:-(\d+))?$/.exec(sel)
+    if (ln) { const lines = [...sl.querySelectorAll('pre.code')[(ln[1] || 1) - 1].querySelectorAll('.line')]; groups.push(lines.slice(ln[2] - 1, +(ln[3] || ln[2]))); continue }
+    const m = /^(.*?)(?:@(\d+))?$/.exec(sel), all = [...sl.querySelectorAll(m[1])].filter(e => getComputedStyle(e).visibility !== 'hidden')
+    if (m[2] !== undefined) groups.push([all[+m[2]]]); else all.forEach(e => groups.push([e]))
+  }
+  for (const g of groups) {
+    const rs = g.filter(Boolean).map(e => e.getBoundingClientRect()).filter(r => r.width || r.height)
+    if (!rs.length) continue
+    const l = Math.min(...rs.map(r => r.left)), t = Math.min(...rs.map(r => r.top)), r = Math.max(...rs.map(r => r.right)), b = Math.max(...rs.map(r => r.bottom))
+    const d = document.createElement('div'); d.className = 'ring'
+    d.style.cssText = `left:${(l - st.left) / k - 6}px;top:${(t - st.top) / k - 4}px;width:${(r - l) / k + 12}px;height:${(b - t) / k + 8}px`
+    stageEl.appendChild(d)
+  }
+}
 
-// Slide 5: the A/B scenario across the three publishers, one step per click; what changed flashes.
+// Pointer: a red dot follows the mouse over the slide, so it shows in a shared window (Zoom); it fades
+// 1.5 s after the mouse stops. Clicking the slide does nothing, so pointing never changes the slide.
+const stageEl = document.getElementById('stage'), laser = document.getElementById('laser'); let laserT
+stageEl.addEventListener('mousemove', e => {
+  const r = stageEl.getBoundingClientRect(), k = r.width / 980
+  laser.style.left = (e.clientX - r.left) / k + 'px'; laser.style.top = (e.clientY - r.top) / k + 'px'
+  laser.classList.add('on'); clearTimeout(laserT); laserT = setTimeout(() => laser.classList.remove('on'), 1500)
+})
+stageEl.addEventListener('mouseleave', () => laser.classList.remove('on'))
+
+// S: the whole script in a clean window, one block per click, printable (Cmd+P).
+function openScript() {
+  const body = slides.map((s, k) => {
+    const n = s.querySelector('.notes')
+    const ps = [...n.querySelectorAll('p')]
+    return `<h2>${k + 1} · ${s.querySelector('h1').textContent} <small>${n.dataset.time}</small></h2>`
+      + ps.map((p, j) => `<div class="say"><span class="cue">${j ? 'click ' + j : 'on open'}${p.dataset.on ? ' · ' + p.dataset.on : ''}</span>${p.dataset.point ? `<span class="pt">highlight · ${p.dataset.point}</span>` : ''}${p.innerHTML} <i class="do c">${j < ps.length - 1 ? 'click' : 'next slide'} →</i></div>`).join('')
+  }).join('')
+  const w = open('', 'outbox-script')
+  w.document.write(`<!doctype html><title>Script · ${document.title}</title><style>body{max-width:760px;margin:40px auto;padding:0 24px;font:20px/1.55 "Avenir Next","Nunito Sans",system-ui,sans-serif;color:#181818}h1{font-weight:400;font-size:28px}h2{font-size:22px;font-weight:600;margin:40px 0 10px;border-top:1px solid #ddd;padding-top:18px}h2 small{font-weight:400;color:#2563eb;font-size:15px;margin-left:8px}.say{margin:0 0 12px;padding:4px 0 4px 14px;border-left:4px solid #fde047}.cue{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#777}.do{display:inline-block;font-style:normal;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:1px 7px;margin:0 3px;vertical-align:middle;background:#dbeafe;color:#1e40af}.do.p{background:#fef3c7;color:#92400e}.do.c{background:#dcfce7;color:#166534}.pt{display:block;font-size:13px;color:#1d4ed8;margin-bottom:2px}@media print{body{font-size:14px;margin:0}h2{break-after:avoid}.say{break-inside:avoid}}</style><h1>Script · ${document.title}</h1><p style="color:#666">One block per click; the time is the slide's budget and when to leave it. Backup slides at the end.</p>${body}`)
+  w.document.close()
+}
+
+// Slide 4: the A/B scenario across the three publishers, one step per click; what changed flashes.
 function makeSim(root) {
   const $ = k => root.querySelector(`[data-r="${k}"]`)
   const SCN = [[], ['ins:A'], ['ins:B', 'commit:B'], ['poll'], ['commit:A'], ['poll']]
@@ -637,7 +740,7 @@ function makeSim(root) {
   const ev = r => `${r.tx} (id ${r.id})`
   const A = {
     ins(tx) { const r = { id: ++S.seq, tx, state: 'open', pub: false }; S.rows.push(r)
-      S.msg = `${tx}: INSERT. The database hands out id ${r.id} now; the transaction stays open and the row is invisible to the publishers.` },
+      S.msg = `${tx}: INSERT. The database gives id ${r.id} now. The transaction is still open, so the publishers cannot see the row.` },
     commit(tx) { const r = row(tx); r.state = 'committed'; r.at = S.polls; S.log.push(r)
       S.msg = `${tx}: COMMIT. Row id ${r.id} becomes visible, and the COMMIT enters the log at position ${S.log.length}.` },
     poll() { S.polls++
@@ -703,6 +806,9 @@ if (presenter) {
   setInterval(() => {
     const s = Math.floor((Date.now() - t0) / 1000)
     document.getElementById('clock').textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+    const m = /running (\d+):(\d+)/.exec(slides[i].querySelector('.notes').dataset.time), tgt = document.getElementById('target')
+    tgt.textContent = m ? `leave this slide by ${m[1]}:${m[2]}` : ''
+    tgt.classList.toggle('late', !!m && s > +m[1] * 60 + +m[2])
   }, 500)
 }
 const fromHash = () => { const [hi, hs] = (location.hash.slice(1) || '1.0').split('.').map(Number); go((hi || 1) - 1, hs || 0, true) }

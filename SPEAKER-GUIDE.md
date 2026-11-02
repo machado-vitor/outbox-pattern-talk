@@ -302,11 +302,11 @@ answers, and the backup slide to jump to (slide numbers as the presenter window 
   connector before the service takes traffic. `never` is invalid on the Postgres connector since 3.3.
 - **"Does the outbox table get cleaned under Debezium?"** Either delete the row in the same transaction (the
   EventRouter ignores deletes) or run a purge. The relay purges by `published_at`. Backup 19.
-- **"Did you measure latency or throughput?"** No. The POCs test behavior, not performance: 17 tests, one
-  scenario each. No controlled public benchmark compares the three on the same outbox; the vendor numbers
-  are milliseconds for CDC and the poll interval for the pollers.
-- **"Versions?"** Postgres 18.6, MySQL 8.4, Kafka 4.3.1, kafka-connect-jdbc 10.9.9, Debezium 3.3.2.Final,
-  run on 2026-10-13. The footer of slide 1.
+- **"Did you measure latency or throughput?"** No. The POCs test behavior, not performance: one scenario
+  per test. No controlled public benchmark compares the three on the same outbox; the vendor numbers are
+  milliseconds for CDC and the poll interval for the pollers.
+- **"Versions?"** Postgres 18.6, MySQL 8.4, Kafka 4.4.0, kafka-connect-jdbc 10.9.9, Debezium 3.7.0.Final,
+  Java 26. The footer of slide 1.
 
 ## Delivery
 

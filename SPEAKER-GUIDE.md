@@ -9,7 +9,7 @@ is Brazilian developers working in the US, with different levels of English. Eve
 anchor: read the anchor, look up, and say the rest in your own words. If you lose your place, read the yellow
 block in the presenter window; it is complete.
 
-Hard limit: 10 minutes. About 1,150 spoken words: 8:50 at a calm 130 words per minute. The time next to each
+Hard limit: 10 minutes. About 1,160 spoken words: 8:55 at a calm 130 words per minute. The time next to each
 slide is its budget and the clock reading at which you should leave it.
 
 The run of show and the stage script below are generated from the slide notes by `npm run build`, so they
@@ -21,21 +21,21 @@ always match what the presenter window (P) and the script page (S) show. Edit th
 <!-- run-of-show:start -->
 | # | Slide | Clicks | Budget | Leave by |
 |---|---|---|---|---|
-| 1 | Outbox: relay vs JDBC Source vs Debezium | 0 | 0:25 | 0:25 |
-| 2 | The outbox: the event is a row in the order's own transaction | 1 | 0:45 | 1:10 |
-| 3 | The publishers: one table, three readers | 3 | 0:40 | 1:50 |
-| 4 | The scenario: A gets the lower id, but commits after B | 5 | 1:15 | 3:05 |
-| 5 | Relay: the mark is in the row, written after the ack | 5 | 1:05 | 4:10 |
-| 6 | JDBC Source: the mark is an id cursor, assigned before the commit | 4 | 1:00 | 5:10 |
-| 7 | Debezium: the mark is a position in the commit log | 3 | 0:55 | 6:05 |
-| 8 | Debezium in production: same guarantee, different incident | 2 | 1:00 | 7:05 |
-| 9 | Side by side: what you write, where the mark lives, what you lose | 3 | 0:30 | 7:35 |
-| 10 | Which one? Two questions, then a default | 3 | 0:40 | 8:15 |
-| 11 | Takeaway: where the mark lives decides what you lose | 2 | 0:35 | 8:50 |
+| 1 | Outbox: relay vs JDBC Source vs Debezium | 0 | 0:30 | 0:30 |
+| 2 | The outbox: the event is a row in the order's own transaction | 1 | 0:45 | 1:15 |
+| 3 | The publishers: one table, three readers | 3 | 0:40 | 1:55 |
+| 4 | The scenario: A gets the lower id, but commits after B | 5 | 1:15 | 3:10 |
+| 5 | Relay: the mark is in the row, written after the ack | 5 | 1:05 | 4:15 |
+| 6 | JDBC Source: the mark is an id cursor, assigned before the commit | 4 | 1:00 | 5:15 |
+| 7 | Debezium: the mark is a position in the commit log | 3 | 0:55 | 6:10 |
+| 8 | Debezium in production: same guarantee, different incident | 2 | 1:00 | 7:10 |
+| 9 | Side by side: what you write, where the mark lives, what you lose | 3 | 0:30 | 7:40 |
+| 10 | Which one? Two questions, then a default | 3 | 0:40 | 8:20 |
+| 11 | Takeaway: where the mark lives decides what you lose | 2 | 0:35 | 8:55 |
 | 12+ | Backup slides for Q&A | | | |
 <!-- run-of-show:end -->
 
-**Checkpoints.** Leave slide 4 at 3:05, leave slide 8 at 7:05. If you leave slide 8 after 7:45, skip
+**Checkpoints.** Leave slide 4 at 3:10, leave slide 8 at 7:10. If you leave slide 8 after 7:50, skip
 slide 9 (say "the table is in the repo") and go to the decision: that saves 30 seconds. If you are still
 late, slide 10 can be one sentence: "many writers means no JDBC Source; Debezium if you need latency and commit
 order and someone owns the slot or the binlog; otherwise the relay."
@@ -95,14 +95,14 @@ Debezium.
 <!-- script:start -->
 ### 1 · Outbox: relay vs JDBC Source vs Debezium
 
-Budget 0:25, leave by 0:25 · 0 clicks
+Budget 0:30, leave by 0:30 · 0 clicks
 
 **On open** · title slide
-> **Hi everyone, I'm Vitor.** You have an outbox table, and you need to get those rows into Kafka. I tried three ways: a relay I wrote, Confluent's JDBC Source connector, and Debezium. All with real Postgres, MySQL and Kafka. I'll show you how each one works, what it costs, and when I'd use it. **→ next slide**
+> **Hi everyone, I'm Vitor.** Today I'm going to talk about the outbox pattern, and more specifically about how you get the rows from the outbox table into Kafka. I tested three ways: a relay I wrote myself, Confluent's JDBC Source connector, and Debezium, all on real Postgres, MySQL and Kafka. For each one I'll show how it works, what it costs, and when I'd use it. **→ next slide**
 
 ### 2 · The outbox: the event is a row in the order's own transaction
 
-Budget 0:45, leave by 1:10 · 1 click
+Budget 0:45, leave by 1:15 · 1 click
 
 **On open** · the diagram, without the publisher · **highlight** the box 'one transaction'
 > **Quick recap of the problem.** You save the order, then you send the event to Kafka. If the service dies between those two, the order is there but the event never goes out. And you can't put Kafka inside the database transaction. So, the outbox: the event is a row, in the same transaction as the order. If the order rolls back, the row goes away with it. **→ click**
@@ -112,7 +112,7 @@ Budget 0:45, leave by 1:10 · 1 click
 
 ### 3 · The publishers: one table, three readers
 
-Budget 0:40, leave by 1:50 · 3 clicks
+Budget 0:40, leave by 1:55 · 3 clicks
 
 **On open** · the map · **highlight** the outbox table
 > **So, three publishers, same table.** **→ click**
@@ -128,7 +128,7 @@ Budget 0:40, leave by 1:50 · 3 clicks
 
 ### 4 · The scenario: A gets the lower id, but commits after B
 
-Budget 1:15, leave by 3:05 · 5 clicks
+Budget 1:15, leave by 3:10 · 5 clicks
 
 **On open** · empty table, three cards · **highlight** the three cards
 > **Okay, here's the test that shows the difference.** Two transactions writing to the outbox at the same time, three publishers reading it. **→ click**
@@ -150,7 +150,7 @@ Budget 1:15, leave by 3:05 · 5 clicks
 
 ### 5 · Relay: the mark is in the row, written after the ack
 
-Budget 1:05, leave by 4:10 · 5 clicks
+Budget 1:05, leave by 4:15 · 5 clicks
 
 **On open** · the loop code · **highlight** the SELECT lines
 > **Let's start with the relay.** About eighty lines, and this is the loop. Select rows where published_at is null. **→ click**
@@ -172,7 +172,7 @@ Budget 1:05, leave by 4:10 · 5 clicks
 
 ### 6 · JDBC Source: the mark is an id cursor, assigned before the commit
 
-Budget 1:00, leave by 5:10 · 4 clicks
+Budget 1:00, leave by 5:15 · 4 clicks
 
 **On open** · the connector JSON · **highlight** mode and the cursor column
 > **Now the JDBC Source.** No code, just this JSON. Mode incrementing, and the cursor column is id. **→ click**
@@ -191,7 +191,7 @@ Budget 1:00, leave by 5:10 · 4 clicks
 
 ### 7 · Debezium: the mark is a position in the commit log
 
-Budget 0:55, leave by 6:05 · 3 clicks
+Budget 0:55, leave by 6:10 · 3 clicks
 
 **On open** · the connector JSON · **highlight** slot, publication, snapshot
 > **Then Debezium.** Also no code: this JSON replaces the relay. A replication slot, a publication with just the outbox table, and snapshot mode no_data. **→ click**
@@ -207,7 +207,7 @@ Budget 0:55, leave by 6:05 · 3 clicks
 
 ### 8 · Debezium in production: same guarantee, different incident
 
-Budget 1:00, leave by 7:05 · 2 clicks
+Budget 1:00, leave by 7:10 · 2 clicks
 
 **On open** · the Postgres card; the disk bars fill by themselves · **highlight** the two disk bars
 > **The cost of Debezium is operations**, and it depends on the database. Postgres needs wal_level logical, so a restart. The slot keeps the WAL until the connector confirms it, so a stopped connector fills the disk. With a limit, the slot gets dropped instead: you lose the gap, and the connector stops with an error. **→ click**
@@ -220,7 +220,7 @@ Budget 1:00, leave by 7:05 · 2 clicks
 
 ### 9 · Side by side: what you write, where the mark lives, what you lose
 
-Budget 0:30, leave by 7:35 · 3 clicks
+Budget 0:30, leave by 7:40 · 3 clicks
 
 **On open** · the table · **highlight** the row 'What you write'
 > **Here's everything side by side.** What you write: a class, a JSON, a JSON. **→ click**
@@ -236,7 +236,7 @@ Budget 0:30, leave by 7:35 · 3 clicks
 
 ### 10 · Which one? Two questions, then a default
 
-Budget 0:40, leave by 8:15 · 3 clicks
+Budget 0:40, leave by 8:20 · 3 clicks
 
 **On open** · empty
 > **So how do you choose?** Two questions, then a default. **→ click**
@@ -252,7 +252,7 @@ Budget 0:40, leave by 8:15 · 3 clicks
 
 ### 11 · Takeaway: where the mark lives decides what you lose
 
-Budget 0:35, leave by 8:50 · 2 clicks
+Budget 0:35, leave by 8:55 · 2 clicks
 
 **On open** · takeaway · **highlight** the ✓ line
 > **So the main idea:** where the mark lives decides what you lose. In the row, or in a log position, a late commit is never skipped. **→ click**

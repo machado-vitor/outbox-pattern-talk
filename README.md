@@ -10,7 +10,7 @@ any browser (double-click), no server needed. `SPEAKER-GUIDE.md` has the run of 
 to say, where to point, when to pause, when to click), the cut plan and the Q&A prep; its run of show and
 script sections are generated from the slide notes by the build.
 
-- 11 talk slides (about 8:50 at 130 words per minute, in plain spoken English), with the script and timing for each slide in the notes:
+- 11 talk slides (about 8:55 at 130 words per minute, in plain spoken English), with the script and timing for each slide in the notes:
   context, the three publishers, the late-commit scenario, one slide per publisher, Debezium in production,
   a side-by-side table, the decision, the takeaway.
 - 8 backup slides after "Thank you" for Q&A: outbox DDL, relay loop, producer settings, scaling the relay,

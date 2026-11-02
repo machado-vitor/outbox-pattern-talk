@@ -162,8 +162,8 @@ table.cmp td:first-child { font-weight:600; }
   <div class="mt6 lg">Vitor Machado</div>
   <div class="mono sm op">github.com/machado-vitor/outbox-compared</div>
   <div class="foot" style="bottom:32px">Postgres 18.6 · MySQL 8.4 · Kafka 4.3.1 · kafka-connect-jdbc 10.9.9 · Debezium 3.3.2.Final · 17 passing tests, 2026-10-13</div>
-  <aside class="notes" data-time="0:25 · running 0:25">
-    <p data-on="title slide"><b>Hi everyone, I'm Vitor.</b> You have an outbox table, and you need to get those rows into Kafka. I tried three ways: a relay I wrote, Confluent's JDBC Source connector, and Debezium. All with real Postgres, MySQL and Kafka. I'll show you how each one works, what it costs, and when I'd use it.</p>
+  <aside class="notes" data-time="0:30 · running 0:30">
+    <p data-on="title slide"><b>Hi everyone, I'm Vitor.</b> Today I'm going to talk about the outbox pattern, and more specifically about how you get the rows from the outbox table into Kafka. I tested three ways: a relay I wrote myself, Confluent's JDBC Source connector, and Debezium, all on real Postgres, MySQL and Kafka. For each one I'll show how it works, what it costs, and when I'd use it.</p>
   </aside>
 </section>
 
@@ -196,7 +196,7 @@ flowchart LR
   <div class="sm mt2"><b>The outbox</b>: the event is a row, saved in the same transaction as the order. If the order rolls back, the row is gone too. <code>event_id</code>: used to drop duplicates · <code>published_at</code>: set by the relay after sending.</div>
   <div data-step="1" class="sm mt2"><b>The publisher</b>: whatever takes the row from the table to Kafka: a process you write, or a connector.</div>
   <div data-step="1" class="mt4 xl b c">The publisher must know which rows were already sent. The three do it in different ways.</div>
-  <aside class="notes" data-time="0:45 · running 1:10">
+  <aside class="notes" data-time="0:45 · running 1:15">
     <p data-on="the diagram, without the publisher" data-focus=".cluster" data-point="the box 'one transaction'"><b>Quick recap of the problem.</b> You save the order, then you send the event to Kafka. If the service dies between those two, the order is there but the event never goes out. And you can't put Kafka inside the database transaction. So, the outbox: the event is a row, in the same transaction as the order. If the order rolls back, the row goes away with it.</p>
     <p data-on="the publisher node and the line at the bottom" data-focus="[id*=&quot;-flowchart-pub-&quot;]" data-point="the publisher? node"><b>But someone still has to take that row to Kafka.</b> I'll call that the publisher. And it has to know which rows it already sent. That's where the three differ.</p>
   </aside>
@@ -227,7 +227,7 @@ flowchart LR
     <div data-step="3"><b class="dbz">Debezium</b> (Kafka Connect): <b>CDC</b>, change data capture, reading the Postgres WAL / the MySQL binlog instead of the table.</div>
   </div>
   <div class="foot">POCs: same schema, same write; real Postgres, MySQL, Kafka and Kafka Connect (Testcontainers) · relay and JDBC Source on Postgres, Debezium on both</div>
-  <aside class="notes" data-time="0:40 · running 1:50">
+  <aside class="notes" data-time="0:40 · running 1:55">
     <p data-on="the map" data-focus="[id*=&quot;-flowchart-outbox-&quot;]" data-point="the outbox table"><b>So, three publishers, same table.</b></p>
     <p data-on="the relay line" data-focus="[id*=&quot;-flowchart-relay-&quot;]" data-point="the relay box"><b>The relay</b> is a process you write yourself. Every second it reads the table, sends the new rows, and marks them as sent.</p>
     <p data-on="the JDBC Source line" data-focus="[id*=&quot;-flowchart-jdbc-&quot;]" data-point="the JDBC Source box"><b>The JDBC Source</b> is a Kafka Connect connector: a JSON file, no code. It also polls the table, but it keeps a cursor, the highest id it has seen.</p>
@@ -255,7 +255,7 @@ flowchart LR
     </div>
   </div>
   <div data-step="5" class="xs op mt2">"using incrementing mode to load data from such tables always results in some data loss" — Confluent, JDBC Source, Limitations · the same scenario runs in every POC's tests (outbox-relay/src/test/java/RelayTest.java:46-62)</div>
-  <aside class="notes" data-time="1:15 · running 3:05">
+  <aside class="notes" data-time="1:15 · running 3:10">
     <p data-on="empty table, three cards" data-focus=".drains" data-point="the three cards"><b>Okay, here's the test that shows the difference.</b> Two transactions writing to the outbox at the same time, three publishers reading it.</p>
     <p data-on="A: INSERT · row 1, state open" data-focus="[data-r=&quot;rows&quot;] tr@0" data-point="row 1"><b>Transaction A</b> inserts a row, gets id 1, but doesn't commit yet. The row is there, but nobody can see it.</p>
     <p data-on="B: INSERT + COMMIT · row 2, COMMIT B in the log" data-focus="[data-r=&quot;rows&quot;] tr@1" data-point="row 2"><b>Transaction B</b> comes in, gets id 2, and commits right away. Notice: the id is given at INSERT, not at COMMIT.</p>
@@ -283,7 +283,7 @@ db.prepareStatement("UPDATE outbox ⟦SET published_at = now()⟧ WHERE id = ANY
     <div data-step="4" class="card"><div class="t">The cost: a duplicate</div>Kafka has the event but the UPDATE never ran: the next sweep sends it again. RelayTest.java:85-101 pauses Kafka mid-send; the topic holds the same <code>event_id</code> twice.<div class="fig"><span class="chip">e1</span><span class="chip">e2</span><span class="chip dup">e2</span><div class="op">the consumer drops the second e2</div></div></div>
     <div data-step="5" class="card"><div class="t">What you get</div><div class="li">· ~80 lines, one connection, no DB setup</div><div class="li">· every failure shows up in a debugger</div><div class="li">· latency = the poll interval (1 s here)</div><div class="li">· the table grows: purge it</div><div class="li">· one instance keeps per-aggregate order</div></div>
   </div>
-  <aside class="notes" data-time="1:05 · running 4:10">
+  <aside class="notes" data-time="1:05 · running 4:15">
     <p data-on="the loop code" data-focus="line:2-3" data-point="the SELECT lines"><b>Let's start with the relay.</b> About eighty lines, and this is the loop. Select rows where published_at is null.</p>
     <p data-on="the send line" data-focus="line:6" data-point="kafka.send … .get()"><b>Send each one</b>, wait for the ack. If a send fails, nothing gets marked.</p>
     <p data-on="the UPDATE and the main loop" data-focus="line:8-9" data-point="the last two lines"><b>After the batch</b>, one UPDATE sets published_at. Sleep a second, go again.</p>
@@ -309,7 +309,7 @@ WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = high
     <div data-step="4" class="card"><div class="t">Timestamp mode?</div>Timestamp + incrementing with a safety delay only narrows the window: safe only if every transaction finishes within the delay, and <code>now()</code> is the transaction's start, not its commit.</div>
     <div data-step="4" class="card"><div class="t">Where it is fine</div>A single-writer table, a read replica, a legacy system without CDC: zero code, one JSON. Not an outbox with concurrent writers.<div class="fig op">Nothing marks the table, so there is no safe purge by state either.</div></div>
   </div>
-  <aside class="notes" data-time="1:00 · running 5:10">
+  <aside class="notes" data-time="1:00 · running 5:15">
     <p data-on="the connector JSON" data-focus="line:1-2" data-point="mode and the cursor column"><b>Now the JDBC Source.</b> No code, just this JSON. Mode incrementing, and the cursor column is id.</p>
     <p data-on="the query line" data-focus="line:3" data-point="the query"><b>And a query.</b> It filters on published_at, but the connector never writes that column, so the filter does nothing.</p>
     <p data-on="the query that actually runs" data-focus="line:2/3" data-point="the WHERE id > ? line"><b>This is the query that actually runs.</b> The connector adds "id bigger than the cursor", and the cursor lives in Kafka Connect: after B, it's 2.</p>
@@ -338,7 +338,7 @@ WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = high
     <div data-step="3" class="card"><div class="t">What you get</div><div class="li">· milliseconds, no polling</div><div class="li">· zero application code</div><div class="li">· commit order per aggregate (key = <code>aggregate_id</code>)</div><div class="li">· the table can stay empty: DELETE in the same tx, the EventRouter ignores deletes</div></div>
     <div data-step="3" class="card"><div class="t">Connector down, then back</div>The slot keeps the WAL while the connector is gone; rows written in the gap are published on return (tested on both databases).<div class="fig op">Catch: <code>snapshot.mode=no_data</code> never publishes rows written before streaming started.</div></div>
   </div>
-  <aside class="notes" data-time="0:55 · running 6:05">
+  <aside class="notes" data-time="0:55 · running 6:10">
     <p data-on="the connector JSON" data-focus="line:2-6" data-point="slot, publication, snapshot"><b>Then Debezium.</b> Also no code: this JSON replaces the relay. A replication slot, a publication with just the outbox table, and snapshot mode no_data.</p>
     <p data-on="the EventRouter lines" data-focus="line:7-10" data-point="the transform"><b>Then the EventRouter transform</b> turns each outbox INSERT into a Kafka record: key is the aggregate_id, event_id and event_type in headers, the payload as value.</p>
     <p data-on="the MySQL line" data-focus="div.xs.op" data-point="the line under the code"><b>MySQL:</b> same transform, plus a server id and a schema history topic.</p>
@@ -371,7 +371,7 @@ WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = high
     </div>
   </div>
   <div data-step="2" class="mt3 lg b c">Same guarantee, different incident: a <b>full disk</b> or <b>lost events</b>. In both cases the connector stops with an error. Monitor slot lag and binlog age (backup).</div>
-  <aside class="notes" data-time="1:00 · running 7:05">
+  <aside class="notes" data-time="1:00 · running 7:10">
     <p data-on="the Postgres card; the disk bars fill by themselves" data-focus=".fig@0" data-point="the two disk bars"><b>The cost of Debezium is operations</b>, and it depends on the database. Postgres needs wal_level logical, so a restart. The slot keeps the WAL until the connector confirms it, so a stopped connector fills the disk. With a limit, the slot gets dropped instead: you lose the gap, and the connector stops with an error.</p>
     <p data-on="the MySQL card" data-focus=".fig@1" data-point="the three bars against the dashed line"><b>On MySQL</b> the binlog is on by default, but nothing holds it for Debezium. If the connector is down longer than the retention, you lose events, and the connector stops with an error. Thirty days on normal MySQL, one day on Cloud SQL, zero on RDS.</p>
     <p data-on="the line at the bottom" data-focus="[data-step=&quot;2&quot;]"><b>So, same guarantee, different incident:</b> full disk, or lost events. Both times the connector stops with an error, so you know. Monitor the slot and the binlog age.</p>
@@ -396,7 +396,7 @@ WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = high
     </tbody>
   </table>
   <div data-step="3" class="mt3 xl b c">The real difference isn't polling vs CDC: it's where the mark lives.</div>
-  <aside class="notes" data-time="0:30 · running 7:35">
+  <aside class="notes" data-time="0:30 · running 7:40">
     <p data-on="the table" data-focus="tbody tr@0" data-point="the row 'What you write'"><b>Here's everything side by side.</b> What you write: a class, a JSON, a JSON.</p>
     <p data-on="row 2" data-focus="tbody tr@1" data-point="the row 'Where the mark lives'"><b>Where the mark lives:</b> in the row, in an id, in a log position.</p>
     <p data-on="row 3" data-focus="tbody tr@2" data-point="the row 'Late commit'"><b>The late commit:</b> next loop, lost, commit order. The other rows are for reference.</p>
@@ -420,7 +420,7 @@ WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = high
     <div data-step="3" class="an relay"><b>Relay.</b> <span>You own the code and the database needs no special setup; it's one class, and every failure shows up in a debugger; one instance keeps per-aggregate order.</span></div>
   </div>
   <div data-step="3" class="mt4 sm c">Postgres or MySQL under Debezium: both deliver commit order; what changes is the incident, <b>full disk</b> or <b>lost events</b>.</div>
-  <aside class="notes" data-time="0:40 · running 8:15">
+  <aside class="notes" data-time="0:40 · running 8:20">
     <p data-on="empty"><b>So how do you choose?</b> Two questions, then a default.</p>
     <p data-on="question 1, JDBC Source out" data-focus=".an.jdbc" data-point="the red box"><b>Does the outbox have many writers?</b> Almost always yes, so the JDBC Source is out. Keep it for read replicas and old systems without CDC.</p>
     <p data-on="question 2, Debezium" data-focus=".an.dbz" data-point="the green box"><b>Do you need low latency and commit order</b>, and will someone take care of the slot or the binlog? Then Debezium: zero application code, one more thing to operate.</p>
@@ -443,7 +443,7 @@ WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = high
   </div>
   <div class="lg b mt4 c">Thank you! · Vitor Machado</div>
   <div class="xs op c mt1">Backup slides for Q&amp;A follow: DDL, relay loop, producer settings, scaling, consumer dedupe, Debezium config, monitoring, purge.</div>
-  <aside class="notes" data-time="0:35 · running 8:50">
+  <aside class="notes" data-time="0:35 · running 8:55">
     <p data-on="takeaway" data-focus=".tkrow@0" data-point="the ✓ line"><b>So the main idea:</b> where the mark lives decides what you lose. In the row, or in a log position, a late commit is never skipped.</p>
     <p data-on="the ✗ line" data-focus=".tkrow@1" data-point="the ✗ line"><b>In an id cursor</b>, like the JDBC Source or your own "last id I saw", it's lost with no error. When Debezium loses events, the connector stops, so you know.</p>
     <p data-on="the ! line · stay here for questions, End = backups" data-focus=".tkrow@2" data-point="the ! line"><b>Relay and Debezium</b> can still send twice, so dedupe by event_id. <i class="do p">pause</i> Before you pick a publisher, check where it keeps its mark. Thank you!</p>

@@ -39,4 +39,5 @@ npm install      # first time only: npx playwright install chromium
 npm run build    # highlights code with Shiki, renders the mermaid diagrams, rewrites outbox-pattern.html
 ```
 
-Every snippet cited as `file:lines` is copied verbatim from the POCs.
+Every snippet cited as `file:lines` comes from the POCs; skipped or condensed lines are marked with `…` or
+"condensed".

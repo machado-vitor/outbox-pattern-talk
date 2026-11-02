@@ -210,10 +210,10 @@ Budget 0:55, leave by 6:10 · 3 clicks
 Budget 1:00, leave by 7:10 · 2 clicks
 
 **On open** · the Postgres card; the disk bars fill by themselves · **highlight** the two disk bars
-> **The cost of Debezium is operations**, and it depends on the database. Postgres needs wal_level logical, so a restart. The slot keeps the WAL until the connector confirms it, so a stopped connector fills the disk. With a limit, the slot gets dropped instead: you lose the gap, and the connector stops with an error. **→ click**
+> **The cost of Debezium is operations**, and it depends on the database. Postgres needs wal_level logical, so a restart. The slot keeps the WAL until the connector confirms it, so a stopped connector fills the disk. With a limit, the slot gets invalidated instead: you lose the gap, and the connector stops with an error. **→ click**
 
 **Click 1** · the MySQL card · **highlight** the three bars against the dashed line
-> **On MySQL** the binlog is on by default, but nothing holds it for Debezium. If the connector is down longer than the retention, you lose events, and the connector stops with an error. Thirty days on normal MySQL, one day on Cloud SQL, zero on RDS. **→ click**
+> **On MySQL** the binlog is on by default, but nothing holds it for Debezium. If the connector is down longer than the retention, you lose events, and the connector stops with an error. Thirty days on normal MySQL, seven on Cloud SQL, and zero on RDS unless you set it. **→ click**
 
 **Click 2** · the line at the bottom
 > **So, same guarantee, different incident:** full disk, or lost events. Both times the connector stops with an error, so you know. Monitor the slot and the binlog age. **→ next slide**
@@ -295,11 +295,12 @@ answers, and the backup slide to jump to (slide numbers as the presenter window 
   synchronized slots. On managed services check what the provider supports. Say this as "check your version
   and provider", not as a guarantee.
 - **"RDS MySQL has zero hours of binlog?"** RDS keeps the binlog only while automated backups are on, and
-  the retention is set with the `rds_set_configuration('binlog retention hours', N)` procedure; the point is
-  that the default is not a safety net.
+  the retention is set with the `rds_set_configuration('binlog retention hours', N)` procedure, up to 168
+  hours; unset, RDS purges binlogs as soon as it can. Cloud SQL keeps them 7 days by default (14 on
+  Enterprise Plus, configurable). The point is that the default is not a safety net on RDS.
 - **"Why `snapshot.mode=no_data`?"** The outbox is a queue: the old rows were already published by whatever
   ran before. The cost is that rows written before streaming starts are never published, so register the
-  connector before the service takes traffic. `never` is invalid on the Postgres connector since 3.3.
+  connector before the service takes traffic. `never` is no longer a valid value; use `no_data`.
 - **"Does the outbox table get cleaned under Debezium?"** Either delete the row in the same transaction (the
   EventRouter ignores deletes) or run a purge. The relay purges by `published_at`. Backup 19.
 - **"Did you measure latency or throughput?"** No. The POCs show behavior, not performance. No controlled

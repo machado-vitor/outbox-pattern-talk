@@ -276,8 +276,8 @@ flowchart LR
     var record = new ProducerRecord&lt;&gt;(TOPIC, ⟦rs.getString("aggregate_id")⟧, rs.getString("payload"));
     kafka.send(record)⟦.get()⟧; // blocks until acks=all; a failure aborts the sweep, nothing is marked
 }
-db.prepareStatement("UPDATE outbox ⟦SET published_at = now()⟧ WHERE id = ANY (?)"); // … then mark the batch
-// main(): while (true) { while (relay.sweep() == BATCH) {} ⟦Thread.sleep(1000)⟧; }</code></pre>
+try (var st = db.prepareStatement("UPDATE outbox ⟦SET published_at = now()⟧ WHERE id = ANY (?)")) {
+// main(), condensed: while (true) { while (relay.sweep() == BATCH) {} ⟦Thread.sleep(1000)⟧; }</code></pre>
   <div class="cols3 ops mt3">
     <div data-step="3" class="card"><div class="t relay">Why A came out</div>The question is "is it published?", not "is the id above where I stopped?". A late commit is one more unpublished row.</div>
     <div data-step="4" class="card"><div class="t">The cost: a duplicate</div>Kafka has the event, but the relay dies before the UPDATE: the next sweep sends it again, and the topic holds the same <code>event_id</code> twice.<div class="fig"><span class="chip">e1</span><span class="chip">e2</span><span class="chip dup">e2</span><div class="op">the consumer drops the second e2</div></div></div>
@@ -363,17 +363,17 @@ WHERE ⟦"id" &gt; ?⟧ ORDER BY "id" ASC                            -- ? = high
       <div class="fig"><div class="lbl">default binlog retention · example: 2&#8209;day outage</div>
         <div class="tl">
           <span>MySQL (self-managed)</span><div class="track"><div class="rbar" style="width:100%"></div><i class="cut"></i></div><span class="ok">✓</span>
-          <span>Cloud SQL</span><div class="track"><div class="rbar short" style="width:3.33%"></div><i class="cut"></i></div><span class="lost">✗</span>
+          <span>Cloud SQL</span><div class="track"><div class="rbar" style="width:23.33%"></div><i class="cut"></i></div><span class="ok">✓</span>
           <span>RDS</span><div class="track"><div class="rbar short" style="width:0"></div><i class="cut"></i></div><span class="lost">✗</span>
         </div>
-        <div class="op mt1">30 days · 1 day · 0 h (binlog only if automated backups are on). The dashed line is the outage.</div>
+        <div class="op mt1">30 days · 7 days (14 on Enterprise Plus) · 0 h, and only with automated backups on. The dashed line is the outage.</div>
       </div>
     </div>
   </div>
   <div data-step="2" class="mt3 lg b c">Same guarantee, different incident: a <b>full disk</b> or <b>lost events</b>. In both cases the connector stops with an error. Monitor slot lag and binlog age (backup).</div>
   <aside class="notes" data-time="1:00 · running 7:10">
-    <p data-on="the Postgres card; the disk bars fill by themselves" data-focus=".fig@0" data-point="the two disk bars"><b>The cost of Debezium is operations</b>, and it depends on the database. Postgres needs wal_level logical, so a restart. The slot keeps the WAL until the connector confirms it, so a stopped connector fills the disk. With a limit, the slot gets dropped instead: you lose the gap, and the connector stops with an error.</p>
-    <p data-on="the MySQL card" data-focus=".fig@1" data-point="the three bars against the dashed line"><b>On MySQL</b> the binlog is on by default, but nothing holds it for Debezium. If the connector is down longer than the retention, you lose events, and the connector stops with an error. Thirty days on normal MySQL, one day on Cloud SQL, zero on RDS.</p>
+    <p data-on="the Postgres card; the disk bars fill by themselves" data-focus=".fig@0" data-point="the two disk bars"><b>The cost of Debezium is operations</b>, and it depends on the database. Postgres needs wal_level logical, so a restart. The slot keeps the WAL until the connector confirms it, so a stopped connector fills the disk. With a limit, the slot gets invalidated instead: you lose the gap, and the connector stops with an error.</p>
+    <p data-on="the MySQL card" data-focus=".fig@1" data-point="the three bars against the dashed line"><b>On MySQL</b> the binlog is on by default, but nothing holds it for Debezium. If the connector is down longer than the retention, you lose events, and the connector stops with an error. Thirty days on normal MySQL, seven on Cloud SQL, and zero on RDS unless you set it.</p>
     <p data-on="the line at the bottom" data-focus="[data-step=&quot;2&quot;]"><b>So, same guarantee, different incident:</b> full disk, or lost events. Both times the connector stops with an error, so you know. Monitor the slot and the binlog age.</p>
   </aside>
 </section>
@@ -569,7 +569,7 @@ COMMIT;
 &quot;transforms.outbox.table.fields.additional.placement&quot;: &quot;⟦event_id:header:event_id⟧,event_type:header:event_type&quot;,
 &quot;transforms.outbox.route.by.field&quot;: &quot;event_type&quot;,
 &quot;transforms.outbox.route.topic.replacement&quot;: &quot;order.events&quot;</code></pre>
-  <div class="xs op mt2">Needs <code>wal_level=logical</code>. <code>snapshot.mode=no_data</code>: rows written before streaming starts are never published; only <code>when_needed</code> re-snapshots on its own, and <code>never</code> is invalid on the PG connector since 3.3. MySQL uses the same SMT plus <code>database.server.id</code> and a schema-history topic.</div>
+  <div class="xs op mt2">Needs <code>wal_level=logical</code>. <code>snapshot.mode=no_data</code>: rows written before streaming starts are never published; only <code>when_needed</code> re-snapshots on its own, and <code>never</code> is no longer a valid value. MySQL uses the same SMT plus <code>database.server.id</code> and a schema-history topic.</div>
   <aside class="notes" data-time="backup">
     <p>Backup slide for questions; not part of the ten minutes.</p>
   </aside>

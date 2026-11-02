@@ -51,19 +51,21 @@ console.log('ok', out, html.length, 'bytes,', blocks.length, 'code blocks')
 // with what the click shows (data-on), what it highlights (data-point), the speech, and "→ click".
 function writeGuide(src) {
   const strip = t => t.replace(/<b>([\s\S]*?)<\/b>/g, '**$1**').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
-  const talk = [...src.matchAll(/<section class="slide([^"]*)"[^>]*>([\s\S]*?)<\/section>/g)]
-    .filter(m => !m[1].includes('backup')).map((m, k) => {
+  const all = [...src.matchAll(/<section class="slide([^"]*)"[^>]*>([\s\S]*?)<\/section>/g)].map((m, k) => {
       const body = m[2], notes = /<aside class="notes" data-time="([^"]*)">([\s\S]*?)<\/aside>/.exec(body)
       const [budget, leave] = notes[1].split(' · running ')
       const ps = [...notes[2].matchAll(/<p data-on="([^"]*)"(?: data-focus="[^"]*")?(?: data-point="([^"]*)")?>([\s\S]*?)<\/p>/g)]
         .map(p => ({ on: p[1], point: p[2] || '', text: strip(p[3].replace(/<i class="do p">pause<\/i>/g, '**PAUSE**')) }))
-      return { n: k + 1, title: strip(/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(body)[1]), budget, leave, ps }
+      return { n: k + 1, backup: m[1].includes('backup'), title: strip(/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(body)[1]), budget, leave, ps }
     })
+  const talk = all.filter(s => !s.backup), backups = all.filter(s => s.backup)
   const show = ['| # | Slide | Clicks | Budget | Leave by |', '|---|---|---|---|---|',
     ...talk.map(s => `| ${s.n} | ${s.title} | ${s.ps.length - 1} | ${s.budget} | ${s.leave} |`),
     `| ${talk.length + 1}+ | Backup slides for Q&A | | | |`].join('\n')
   const script = talk.map(s => `### ${s.n} · ${s.title}\n\nBudget ${s.budget}, leave by ${s.leave} · ${s.ps.length - 1} click${s.ps.length === 2 ? '' : 's'}\n\n`
     + s.ps.map((p, k) => `**${k ? 'Click ' + k : 'On open'}** · ${p.on}${p.point ? ` · **highlight** ${p.point}` : ''}\n> ${p.text} **→ ${k < s.ps.length - 1 ? 'click' : 'next slide'}**`).join('\n\n')).join('\n\n')
+    + '\n\n## Backup slides, for Q&A\n\nNot part of the ten minutes. Jump with End and ←, or the URL hash `#12.0`. Each one says which question it answers.\n\n'
+    + backups.map(s => `### ${s.n} · ${s.title}\n\n` + s.ps.map(p => `**${p.on}**${p.point ? ` · **highlight** ${p.point}` : ''}\n> ${p.text}`).join('\n\n')).join('\n\n')
   const path = fileURLToPath(new URL('../SPEAKER-GUIDE.md', here))
   let md = readFileSync(path, 'utf8')
   const fill = (tag, text) => {

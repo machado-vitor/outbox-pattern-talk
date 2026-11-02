@@ -262,6 +262,50 @@ Budget 0:35, leave by 8:55 · 2 clicks
 
 **Click 2** · the ! line · stay here for questions, End = backups · **highlight** the ! line
 > **Relay and Debezium** can still send twice, so dedupe by event_id. **PAUSE** Before you pick a publisher, check where it keeps its mark. Thank you! **→ next slide**
+
+## Backup slides, for Q&A
+
+Not part of the ten minutes. Jump with End and ←, or the URL hash `#12.0`. Each one says which question it answers.
+
+### 12 · The outbox table
+
+**if asked: what does the outbox table look like?** · **highlight** event_id, aggregate_id and the partial index
+> **This is the table, the same in all three.** event_id is unique: that's the key the consumer uses to drop duplicates. aggregate_id becomes the Kafka key, so all events of one order land on one partition, in order. published_at is null until the relay sends the row; the connectors never touch it. And the partial index only covers unpublished rows, so the relay's query stays cheap no matter how big the table gets.
+
+### 13 · The relay loop: mark only after the ack
+
+**if asked: what does the relay do exactly?** · **highlight** the blocking send and the UPDATE
+> **This is the full loop.** For each row, build the record: the key is the aggregate_id, event_id and event_type go in headers. Send and wait for the ack. Only after the whole batch is acked, one UPDATE marks all of them. So a crash between the send and the UPDATE gives you a duplicate, never a loss. One blocking send per row keeps the order and limits the throughput; for an outbox that's a fair trade.
+
+### 14 · Producer settings: why retries=0 and idempotence off
+
+**if asked: why retries=0, why no idempotent producer?** · **highlight** the three settings
+> **Why these settings.** acks=all, because with less, a leader election can drop a row we already marked as published. retries=0, because the relay owns the retry: a row that wasn't acked stays null and goes out again next loop. And idempotence off, because it needs retries, and it only removes duplicates inside one producer session anyway. A relay restart is a new session, so the duplicate happens anyway. That's why dedupe belongs in the consumer.
+
+### 15 · Scaling the relay without breaking order
+
+**if asked: how do you run more than one relay?** · **highlight** the advisory lock and SKIP LOCKED
+> **Two ways to run more than one relay.** Option a: only one is active, chosen with an advisory lock; the others wait. That keeps the order. Option b: every relay takes a different batch with SKIP LOCKED. No row is taken twice, but two relays can send two events of the same order out of order. If order per aggregate matters, keep one active relay, or shard by a hash of aggregate_id, so one order always goes to the same relay.
+
+### 16 · Consumer: dedupe by event_id (inbox)
+
+**if asked: how does the consumer dedupe?** · **highlight** the ON CONFLICT and the offset commit
+> **This is the consumer side.** A table of processed event ids. For each message: insert the event_id; if it's already there, it's a duplicate, roll back and skip. Otherwise apply the effect in the same transaction, commit, and only then commit the Kafka offset. If you crash after the commit but before the offset, the message comes again and the insert conflicts, so nothing happens twice. If the effect is a call to another API, pass the event_id as the idempotency key, because your database commit doesn't cover that call.
+
+### 17 · Debezium Postgres connector: slot, publication, EventRouter
+
+**if asked: what is in the Debezium config?** · **highlight** the slot and the snapshot mode
+> **The full connector config.** pgoutput is the built-in plugin, nothing to install in Postgres. The slot is where Postgres keeps the WAL for us; the publication limits it to the outbox table. snapshot no_data: don't read the existing rows, start streaming from now. Then the EventRouter: the id and the key come from the row, event_id and event_type go in headers, the payload is the value, one topic for everything. On MySQL it's the same transform, plus a server id and a schema history topic.
+
+### 18 · Watching the log: slot lag and binlog retention
+
+**if asked: how do you monitor the slot or the binlog?** · **highlight** retained WAL, safe_wal_size, binlog retention
+> **What to watch.** On Postgres, this query shows how much WAL each slot is holding and how close it is to the limit. Alert when the slot is inactive or the retained WAL keeps growing. If the outbox is quiet, set a heartbeat so the slot keeps moving. On MySQL, the retention is the longest outage you can survive, and SHOW BINARY LOGS tells you the oldest file still there. And when you retire a connector, drop its slot, or the WAL grows forever.
+
+### 19 · Relay backlog and purge
+
+**if asked: how do you keep the outbox table small?** · **highlight** the age query and the batched DELETE
+> **Two things for the relay in production.** Alert on the age of the oldest unpublished row, not on the count: a high count can be normal during a burst, but age tells you the relay is stuck. And purge the published rows in batches, so you never lock the whole table. Partitioning by published_at sounds nice, but in Postgres the primary key has to include the partition column, and published_at is null until the row is sent, so it can't be part of the key as is.
 <!-- script:end -->
 
 ## Q&A prep

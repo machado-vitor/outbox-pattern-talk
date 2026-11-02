@@ -2,7 +2,7 @@
 
 The talk in one sentence: **three publishers move rows from the same outbox table to Kafka, and where each one
 keeps its "already published" mark decides what you lose.** The relay marks the row, Debezium follows the commit
-log, the JDBC Source trusts an id cursor, and only the JDBC Source loses an event in the test.
+log, the JDBC Source trusts an id cursor, and only the JDBC Source loses an event.
 
 The script is spoken English on purpose: short sentences, common words, contractions, no idioms. The audience
 is Brazilian developers working in the US, with different levels of English. Every block starts with a bold
@@ -83,7 +83,7 @@ Share only the deck window; keep the script in a second, unshared window beside 
    window: a red dot follows it and is part of the shared window; it fades 1.5 s after you stop. Moving the
    mouse does not take the keyboard away from the presenter window, and clicking on the slide does nothing.
 6. Before the call: Do Not Disturb on, Slack and mail closed, Zoom's own toolbar out of the deck window, and
-   a two-minute test share with a colleague or a second device to confirm they see the red dot and the slide
+   a two-minute trial share with a colleague or a second device to confirm they see the red dot and the slide
    changes.
 
 ## Slide by slide
@@ -98,7 +98,7 @@ Debezium.
 Budget 0:30, leave by 0:30 · 0 clicks
 
 **On open** · title slide
-> **Hi everyone, I'm Vitor.** Today I'm going to talk about the outbox pattern, and more specifically about how you get the rows from the outbox table into Kafka. I tested three ways: a relay I wrote myself, Confluent's JDBC Source connector, and Debezium, all on real Postgres, MySQL and Kafka. For each one I'll show how it works, what it costs, and when I'd use it. **→ next slide**
+> **Hi everyone, I'm Vitor.** Today I'm going to talk about the outbox pattern, and more specifically about how you get the rows from the outbox table into Kafka. I ran the same outbox three ways: a relay I wrote myself, Confluent's JDBC Source connector, and Debezium, all on real Postgres, MySQL and Kafka. For each one I'll show how it works, what it costs, and when I'd use it. **→ next slide**
 
 ### 2 · The outbox: the event is a row in the order's own transaction
 
@@ -131,7 +131,7 @@ Budget 0:40, leave by 1:55 · 3 clicks
 Budget 1:15, leave by 3:10 · 5 clicks
 
 **On open** · empty table, three cards · **highlight** the three cards
-> **Okay, here's the test that shows the difference.** Two transactions writing to the outbox at the same time, three publishers reading it. **→ click**
+> **Okay, here's the case that shows the difference.** Two transactions write to the outbox at the same time, and the three publishers read it. **→ click**
 
 **Click 1** · A: INSERT · row 1, state open · **highlight** row 1
 > **Transaction A** inserts a row, gets id 1, but doesn't commit yet. The row is there, but nobody can see it. **→ click**
@@ -165,7 +165,7 @@ Budget 1:05, leave by 4:15 · 5 clicks
 > **And that's why A was published.** The relay asks "is this row published?", not "is the id bigger than the last one I saw?". **→ click**
 
 **Click 4** · card: The cost, a duplicate · **highlight** the second e2 chip
-> **The cost is a duplicate.** Kafka got the event, but the UPDATE didn't run, so the next loop sends it again. One test pauses Kafka during the send, and the topic gets the same event_id twice. The consumer just drops the second one. **→ click**
+> **The cost is a duplicate.** Say Kafka gets the event, and the relay dies before the UPDATE. The next loop sends the same row again, and the topic has the same event_id twice. The consumer just drops the second one. **→ click**
 
 **Click 5** · card: What you get · **highlight** the card
 > **Latency** is the poll interval. The table grows, so you delete old rows. And you get one class, no special database setup, and when something breaks, you can debug it. **→ next slide**
@@ -302,9 +302,9 @@ answers, and the backup slide to jump to (slide numbers as the presenter window 
   connector before the service takes traffic. `never` is invalid on the Postgres connector since 3.3.
 - **"Does the outbox table get cleaned under Debezium?"** Either delete the row in the same transaction (the
   EventRouter ignores deletes) or run a purge. The relay purges by `published_at`. Backup 19.
-- **"Did you measure latency or throughput?"** No. The POCs test behavior, not performance: one scenario
-  per test. No controlled public benchmark compares the three on the same outbox; the vendor numbers are
-  milliseconds for CDC and the poll interval for the pollers.
+- **"Did you measure latency or throughput?"** No. The POCs show behavior, not performance. No controlled
+  public benchmark compares the three on the same outbox; the vendor numbers are milliseconds for CDC and the
+  poll interval for the pollers.
 - **"Versions?"** Postgres 18.6, MySQL 8.4, Kafka 4.4.0, kafka-connect-jdbc 10.9.9, Debezium 3.7.0.Final,
   Java 26. The footer of slide 1.
 

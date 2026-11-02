@@ -2,6 +2,9 @@
 
 **View online:** https://machado-vitor.github.io/outbox-pattern-talk/outbox-pattern.html
 
+GitHub Pages caches the page for 10 minutes. If a window shows an old build, press Cmd+Shift+R; the deck also
+checks for a newer build when it loads and reloads itself once.
+
 `outbox-pattern.html` is the deck: under 10 minutes, for developers. It is a single file that opens offline in
 any browser (double-click), no server needed. `SPEAKER-GUIDE.md` has the run of show, the stage script (what
 to say, where to point, when to pause, when to click), the cut plan and the Q&A prep; its run of show and

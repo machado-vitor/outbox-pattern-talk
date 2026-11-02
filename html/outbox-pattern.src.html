@@ -631,6 +631,12 @@ mermaid.run().then(() => { document.querySelectorAll("[data-zoom]").forEach(e =>
 // Navigation (keyboard only): → / space / PageDown next, ← / PageUp back, Home / End, F fullscreen,
 // N shows the notes over the stage, P opens the presenter view in a second, synced window,
 // S opens the script page, + / - resize the notes.
+// Stale-cache guard: GitHub Pages caches the page for 10 minutes, so a fresh window can show an old build.
+// Compare this build's stamp with a no-cache copy and reload once if a newer one is online.
+if (location.protocol.startsWith('http')) fetch(location.pathname, { cache: 'no-store' }).then(r => r.text()).then(t => {
+  const m = /data-build="([^"]+)"/.exec(t), mine = document.documentElement.dataset.build
+  if (m && mine && m[1] !== mine && sessionStorage.getItem('reloaded-for') !== m[1]) { sessionStorage.setItem('reloaded-for', m[1]); location.reload() }
+}).catch(() => {})
 const slides = [...document.querySelectorAll('.slide')]
 const steps = slides.map(s => Math.max(0, ...[...s.querySelectorAll('[data-step],[data-until]')]
   .flatMap(e => [+e.dataset.step || 0, +e.dataset.until || 0]), +s.dataset.steps || 0))

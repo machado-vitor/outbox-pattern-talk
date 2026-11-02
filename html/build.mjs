@@ -44,7 +44,7 @@ const html = await page.evaluate(() => {
 await browser.close()
 rmSync(tmp)
 const out = fileURLToPath(new URL('../outbox-pattern.html', here))
-writeFileSync(out, html)
+writeFileSync(out, html.replace('<html lang="en">', `<html lang="en" data-build="${new Date().toISOString()}">`)) // stamp for the stale-cache guard
 console.log('ok', out, html.length, 'bytes,', blocks.length, 'code blocks')
 
 // The guide's "Run of show" table and "Slide by slide" section mirror the notes: one block per click,
